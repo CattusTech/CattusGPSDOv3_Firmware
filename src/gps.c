@@ -38,7 +38,7 @@ void gps_init()
     gps_clk.PeriphClockSelection = RCC_PERIPHCLK_USART1;
     gps_clk.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
 
-    auto result = HAL_RCCEx_PeriphCLKConfig(&(gps_clk));
+    HAL_StatusTypeDef result = HAL_RCCEx_PeriphCLKConfig(&(gps_clk));
     if (result != HAL_OK)
         hal_perror("gps", "HAL_RCCEx_PeriphCLKConfig", result);
 
@@ -95,7 +95,7 @@ void gps_update()
     char         message_buffer[message_buffer_size];
     HAL_USART_Receive_IT(&(gps_handle), (uint8_t*)(message_buffer), message_buffer_size - 1);
 
-    auto status = HAL_USART_GetState(&(gps_handle));
+    HAL_USART_StateTypeDef status = HAL_USART_GetState(&(gps_handle));
     if (status == HAL_USART_STATE_BUSY_RX)
     {
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
@@ -145,8 +145,8 @@ void gps_update()
         // 12   DifferentialAge (Not Used)
         // 13   DifferentialStation (Not Used)
         // 14   Checksum
-        char*  message_line_delim_saveptr;
-        size_t message_id = strtok_r(message_line, ",", &message_line_delim_saveptr);
+        char* message_line_delim_saveptr;
+        char* message_id = strtok_r(message_line, ",", &message_line_delim_saveptr);
         if (strcmp(message_id + 3, "GGA") != 0)
         {
             goto message_line_next;

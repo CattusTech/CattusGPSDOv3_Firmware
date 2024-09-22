@@ -12,9 +12,9 @@ GPIO_InitTypeDef gpio_screen_reset;
 SPI_HandleTypeDef screen_handle;
 
 u8g2_t  u8g2_handle;
-uint8_t u8x8_byte_method (u8x8_t* u8x8, uint8_t msg, uint8_t arg_int, void* arg_ptr)
+uint8_t u8x8_byte_method(u8x8_t* u8x8, uint8_t msg, uint8_t arg_int, void* arg_ptr)
 {
-    (void) u8x8;
+    (void)u8x8;
     switch (msg)
     {
         case U8X8_MSG_BYTE_SEND:
@@ -118,7 +118,7 @@ void screen_init()
     screen_handle.Init.CRCLength         = SPI_CRC_LENGTH_DATASIZE;
     screen_handle.Init.NSSPMode          = SPI_NSS_PULSE_DISABLE;
 
-    auto result = HAL_SPI_Init(&screen_handle);
+    HAL_StatusTypeDef result = HAL_SPI_Init(&screen_handle);
     if (result != HAL_OK)
         hal_perror("screen", "HAL_SPI_Init", result);
 
