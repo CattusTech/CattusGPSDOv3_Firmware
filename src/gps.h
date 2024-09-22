@@ -7,7 +7,7 @@ extern float        gps_longitude;
 extern char         gps_longitude_chr;
 extern unsigned int gps_sv_number;
 extern float        gps_hdop;
-extern bool         gps_valid;
+extern int          gps_valid;
 extern char         gps_mode;
 
 void gps_init();

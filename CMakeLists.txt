@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.23)
 
 project(gpsdo_v3_fw NONE)
 
-set(CMAKE_C_STANDARD 23)
+set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED true)
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 

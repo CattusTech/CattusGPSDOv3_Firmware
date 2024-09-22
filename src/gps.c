@@ -16,7 +16,7 @@ float        gps_longitude;
 char         gps_longitude_chr;
 unsigned int gps_sv_number;
 float        gps_hdop;
-bool         gps_valid;
+int          gps_valid;
 char         gps_mode;
 
 void gps_init()
@@ -91,14 +91,14 @@ void gps_deinit()
 
 void gps_update()
 {
-    constexpr auto message_buffer_size = 512;
-    char           message_buffer[message_buffer_size];
+    const size_t message_buffer_size = 512;
+    char         message_buffer[message_buffer_size];
     HAL_USART_Receive_IT(&(gps_handle), (uint8_t*)(message_buffer), message_buffer_size - 1);
 
     auto status = HAL_USART_GetState(&(gps_handle));
     if (status == HAL_USART_STATE_BUSY_RX)
     {
-        ulTaskNotifyTake(true, portMAX_DELAY);
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
     }
     else if (status == HAL_USART_STATE_ERROR)
     {
@@ -113,7 +113,7 @@ void gps_update()
         }
     }
     char* message_buffer_delim_saveptr;
-    auto  message_line = strtok_r(message_buffer, "\r\n", &message_buffer_delim_saveptr);
+    char* message_line = strtok_r(message_buffer, "\r\n", &message_buffer_delim_saveptr);
     while (message_line != NULL)
     {
         unsigned int message_checksum = 0;
@@ -145,16 +145,16 @@ void gps_update()
         // 12   DifferentialAge (Not Used)
         // 13   DifferentialStation (Not Used)
         // 14   Checksum
-        char* message_line_delim_saveptr;
-        auto  message_id = strtok_r(message_line, ",", &message_line_delim_saveptr);
+        char*  message_line_delim_saveptr;
+        size_t message_id = strtok_r(message_line, ",", &message_line_delim_saveptr);
         if (strcmp(message_id + 3, "GGA") != 0)
         {
             goto message_line_next;
         }
         else
         {
-            constexpr auto entry_count = 14;
-            char*          entry_list[entry_count];
+            const size_t entry_count = 14;
+            char*        entry_list[entry_count];
             for (size_t i = 0; i < entry_count; i++)
             {
                 entry_list[i] = strtok_r(NULL, ",", &message_line_delim_saveptr);
@@ -191,18 +191,18 @@ void gps_update()
                 sscanf(entry_list[5], "%u", &quality);
                 if (quality == 0 || quality == 6)
                 {
-                    gps_valid = false;
+                    gps_valid = 0;
                 }
-                else if (gps_valid == false)
+                else if (gps_valid == 0)
                 {
                     printf("gps: first fix captured.\n");
                     printf(
                         "gps: pos: %2.9f%c,%2.9f%c\n", gps_latitude, gps_latitude_chr, gps_longitude, gps_longitude_chr);
-                    gps_valid = true;
+                    gps_valid = 1;
                 }
                 else
                 {
-                    gps_valid = true;
+                    gps_valid = 1;
                 }
                 // svnumber parser
                 sscanf(entry_list[6], "%u", &(gps_sv_number));
