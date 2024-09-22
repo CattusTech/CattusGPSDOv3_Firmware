@@ -1,14 +1,30 @@
-#include "clock.hpp"
+#include "clock.h"
 #include <stm32g4xx.h>
 #include <stm32g4xx_hal.h>
-void core::clock_init()
+void clock_init()
 {
-    auto RCC_OscInitStruct = RCC_OscInitTypeDef();
-    auto RCC_ClkInitStruct = RCC_ClkInitTypeDef();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_GPIOD_CLK_ENABLE();
+    __HAL_RCC_GPIOE_CLK_ENABLE();
+    __HAL_RCC_GPIOF_CLK_ENABLE();
+    __HAL_RCC_GPIOG_CLK_ENABLE();
+
+    __HAL_RCC_DMAMUX1_CLK_ENABLE();
+    __HAL_RCC_DMA1_CLK_ENABLE();
+    __HAL_RCC_DMA2_CLK_ENABLE();
+
+    __HAL_RCC_SYSCFG_CLK_ENABLE();
+    __HAL_RCC_PWR_CLK_ENABLE();
+
+    RCC_OscInitTypeDef RCC_OscInitStruct = {};
+    RCC_ClkInitTypeDef RCC_ClkInitStruct = {};
 
     /** Configure the main internal regulator output voltage
      */
     HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1);
+    HAL_PWREx_DisableUCPDDeadBattery();
 
     /** Initializes the RCC Oscillators according to the specified parameters
      * in the RCC_OscInitTypeDef structure.

@@ -54,17 +54,18 @@
 ENTRY(Reset_Handler)
 
 /* Highest address of the user mode stack */
-_estack = ORIGIN(RAM) + LENGTH(RAM);	/* end of "RAM" Ram type memory */
+_estack = ORIGIN(CCMSRAM) + LENGTH(CCMSRAM);	/* end of "RAM" Ram type memory */
 
-_Min_Heap_Size = 0x200;	/* required amount of heap  */
+_Min_Heap_Size = 0;	/* required amount of heap  */
 _Min_Stack_Size = 0x400;	/* required amount of stack */
 
 /* Memories definition */
 MEMORY
 {
-  CCMSRAM    (xrw)    : ORIGIN = 0x10000000,   LENGTH = 10K
-  RAM    (xrw)    : ORIGIN = 0x20000000,   LENGTH = 32K
-  FLASH    (rx)    : ORIGIN = 0x08000000,   LENGTH = 128K
+  CCMSRAM  (xrw)    : ORIGIN = 0x10000000,      LENGTH = 10K
+  SRAM1    (rw)     : ORIGIN = 0x20000000,      LENGTH = 16K
+  SRAM2    (rw)     : ORIGIN = 0x20004000,      LENGTH = 6K
+  FLASH    (rx)     : ORIGIN = 0x08000000,      LENGTH = 128K
 }
 
 /* Define output sections */
@@ -145,7 +146,7 @@ SECTIONS
 
     . = ALIGN(4);
     _edata = .;        /* define a global symbol at data end */
-  } >RAM AT> FLASH
+  } >SRAM1 AT> FLASH
 
   
   /* Uninitialized data section */
@@ -162,8 +163,8 @@ SECTIONS
     . = ALIGN(4);
     _ebss = .;         /* define a global symbol at bss end */
     __bss_end__ = _ebss;
-  } >RAM
-
+  } >SRAM1
+  
   /* User_heap_stack section, used to check that there is enough RAM left */
   ._user_heap_stack :
   {
@@ -173,7 +174,7 @@ SECTIONS
     . = . + _Min_Heap_Size;
     . = . + _Min_Stack_Size;
     . = ALIGN(8);
-  } >RAM
+  } >CCMSRAM
 
   
 

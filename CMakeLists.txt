@@ -1,22 +1,23 @@
 cmake_minimum_required(VERSION 3.23)
 
-project(gpsdo_v3_fw C CXX ASM)
+project(gpsdo_v3_fw NONE)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED true)
-set(CMAKE_C_STANDARD 17)
+set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED true)
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
 include("cmake/complier.cmake")
 
-file(GLOB_RECURSE PROJECT_SOURCES_CXX ${CMAKE_SOURCE_DIR}/src/*.cpp)
+enable_language(C ASM)
+
+#file(GLOB_RECURSE PROJECT_SOURCES_CXX ${CMAKE_SOURCE_DIR}/src/*.cpp)
 file(GLOB_RECURSE PROJECT_SOURCES_C ${CMAKE_SOURCE_DIR}/src/*.c)
 file(GLOB HAL_SOURCES_C ${CMAKE_SOURCE_DIR}/thirdparty/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/*.c)
 file(GLOB HAL_EXAMPLES_C ${CMAKE_SOURCE_DIR}/thirdparty/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Src/*template.c)
 list(REMOVE_ITEM HAL_SOURCES_C ${HAL_EXAMPLES_C})
 
 include("cmake/freertos.cmake")
+include("cmake/u8g2.cmake")
 
 add_executable(gpsdo_v3_fw)
 target_include_directories(gpsdo_v3_fw PRIVATE
@@ -24,6 +25,7 @@ target_include_directories(gpsdo_v3_fw PRIVATE
     ${CMAKE_SOURCE_DIR}/thirdparty/STM32CubeG4/Drivers/CMSIS/Device/ST/STM32G4xx/Include
     ${CMAKE_SOURCE_DIR}/thirdparty/STM32CubeG4/Drivers/CMSIS/Core/Include
     ${CMAKE_SOURCE_DIR}/thirdparty/FreeRTOS-Kernel/include
+    ${CMAKE_SOURCE_DIR}/thirdparty/u8g2/csrc/
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/src
 )
@@ -36,6 +38,7 @@ target_sources(gpsdo_v3_fw PRIVATE
 target_link_libraries(gpsdo_v3_fw
     freertos_kernel
     freertos_config
+    u8g2
 )
 add_custom_command(
     TARGET gpsdo_v3_fw

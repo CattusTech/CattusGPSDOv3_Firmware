@@ -25,7 +25,7 @@ set(CMAKE_EXECUTABLE_SUFFIX_CXX     ".elf")
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 # MCU specific flags
 set(TARGET_FLAGS "-mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard")
-set(SPEC_FLAGS "")
+set(SPEC_FLAGS "-specs=nano.specs -u _printf_float")
 set(MODEL_FLAGS "-DSTM32G431xx -DSTM32G4xx -DUSE_HAL_DRIVER")
 set(WARNING_FLAGS "-Wall -Wextra")
 set(SECTIONGC_FLAGS "-fdata-sections -ffunction-sections")

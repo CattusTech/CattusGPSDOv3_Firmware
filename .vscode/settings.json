@@ -70,7 +70,12 @@
         "streambuf": "cpp",
         "thread": "cpp",
         "typeindex": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "u8x8.h": "c",
+        "stdio.h": "c",
+        "freertos.h": "c",
+        "clock.h": "c",
+        "message_buffer.h": "c"
     },
     "C_Cpp.default.defines": [
         "STM32G431xx",

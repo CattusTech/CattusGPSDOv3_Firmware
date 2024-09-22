@@ -1,14 +1,17 @@
-#include "clock.hpp"
-#include "swj.hpp"
-#include "clock.hpp"
+#include "clock.h"
+#include "gps.h"
+#include "screen.h"
+#include "swj.h"
 #include <FreeRTOS.h>
-#include <cinttypes>
-#include <cstdio>
+#include <inttypes.h>
+#include <message_buffer.h>
+#include <stdio.h>
 #include <stm32g4xx_hal.h>
 #include <task.h>
 
-static void watchdog_task([[maybe_unused]] void* v)
+static void watchdog_task(void* v)
 {
+    (void)v;
     static IWDG_HandleTypeDef iwdg_handle;
     iwdg_handle.Instance       = IWDG;
     iwdg_handle.Init.Prescaler = IWDG_PRESCALER_32;
@@ -17,9 +20,9 @@ static void watchdog_task([[maybe_unused]] void* v)
 
     HAL_IWDG_Init(&iwdg_handle);
 
-    std::printf("watchdog: started with %" PRIu32 " ms\n", iwdg_handle.Init.Reload);
+    printf("watchdog: started with %" PRIu32 " ms\n", iwdg_handle.Init.Reload);
 
-    while (true)
+    while (1)
     {
         HAL_IWDG_Refresh(&iwdg_handle);
         const TickType_t xDelay = 750 / portTICK_PERIOD_MS;
@@ -27,7 +30,16 @@ static void watchdog_task([[maybe_unused]] void* v)
         vTaskDelay(xDelay);
     }
 }
-
+static void gps_task(void* v)
+{
+    (void)v;
+    gps_init();
+}
+static void screen_task(void* v)
+{
+    (void)v;
+    screen_init();
+}
 static void print_reset_cause()
 {
     if (__HAL_RCC_GET_FLAG(RCC_FLAG_BORRST))
@@ -46,12 +58,15 @@ static void print_reset_cause()
         printf("Last reset: Low Power\n");
     __HAL_RCC_CLEAR_RESET_FLAGS();
 }
+uint8_t      ucHeap[configTOTAL_HEAP_SIZE] __attribute__((section("._user_heap_stack")));
+TaskHandle_t gps_task_handle;
+TaskHandle_t screen_task_handle;
 
 int main()
 {
     HAL_Init();
-    core::clock_init();
-    auto swj_handle = periph::swj();
+    clock_init();
+    swj_init(2000000);
 
     printf("Cattus GPSDOv3, Build time:%s %s\n", __DATE__, __TIME__);
     printf("System clock: %" PRIu32 "MHz, ", HAL_RCC_GetSysClockFreq() / 1000000);
@@ -60,13 +75,14 @@ int main()
     HAL_NVIC_SetPriority(PendSV_IRQn, 15, 0);
     HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
 
-    xTaskCreate(watchdog_task, "watchdog_task", 128, nullptr, configMAX_PRIORITIES - 1, nullptr);
+    xTaskCreate(watchdog_task, "watchdog_task", 128, NULL, configMAX_PRIORITIES - 1, NULL);
+    xTaskCreate(gps_task, "gps_task", 128, NULL, 1, &gps_task_handle);
+    xTaskCreate(screen_task, "screen_task", 128, NULL, 2, &screen_task_handle);
 
     printf("freertos: started\n");
     vTaskStartScheduler();
 
-    while (true)
+    while (1)
     {
-
     }
 };

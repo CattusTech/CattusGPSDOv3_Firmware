@@ -51,7 +51,6 @@ AlignConsecutiveMacros: AcrossEmptyLinesAndComments
 ConstructorInitializerIndentWidth: 4
 ContinuationIndentWidth: 4
 Cpp11BracedListStyle: false
-DerivePointerAlignment: true
 DisableFormat: false
 ExperimentalAutoDetectBinPacking: false
 IncludeBlocks: Preserve

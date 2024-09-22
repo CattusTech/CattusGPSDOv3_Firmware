@@ -4,3 +4,6 @@
 [submodule "thirdparty/FreeRTOS-Kernel"]
 	path = thirdparty/FreeRTOS-Kernel
 	url = https://github.com/FreeRTOS/FreeRTOS-Kernel.git
+[submodule "thirdparty/u8g2"]
+	path = thirdparty/u8g2
+	url = https://github.com/olikraus/u8g2.git
