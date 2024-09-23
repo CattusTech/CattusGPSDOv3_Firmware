@@ -18,6 +18,9 @@ unsigned int gps_sv_number;
 float        gps_hdop;
 int          gps_valid;
 char         gps_mode;
+unsigned int gps_time_h;
+unsigned int gps_time_m;
+float        gps_time_s;
 
 void gps_init()
 {
@@ -174,7 +177,7 @@ void gps_update()
             else
             {
                 // time unused
-                (void)entry_list[0];
+                sscanf(entry_list[0], "%2u%2u%f", &gps_time_h, &gps_time_m, &gps_time_s);
                 // latitude parser
                 unsigned int latitude_degree;
                 double       latitude_minute;
