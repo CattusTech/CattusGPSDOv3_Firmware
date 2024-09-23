@@ -67,6 +67,13 @@ static void print_reset_cause()
         printf("Last reset: Low Power\n");
     __HAL_RCC_CLEAR_RESET_FLAGS();
 }
+
+void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
+{
+    (void)xTask;
+    printf("freertos: stack overflow detetcd on task %s", pcTaskName);
+}
+
 uint8_t      ucHeap[configTOTAL_HEAP_SIZE] __attribute__((section("._user_heap_stack")));
 TaskHandle_t gps_task_handle;
 TaskHandle_t screen_task_handle;
