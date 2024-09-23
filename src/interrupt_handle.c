@@ -16,6 +16,6 @@ void USART1_IRQHandler(void)
 
 void SPI2_IRQHandle(void)
 {
-    HAL_SPI_IRQHandler(&screen_handle);
+    HAL_SPI_IRQHandler(&screen_spi_handle);
     vTaskNotifyGiveFromISR(screen_task_handle, NULL);
 }
