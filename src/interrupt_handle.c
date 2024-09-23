@@ -4,7 +4,7 @@
 #include <stm32g4xx_hal.h>
 #include <task.h>
 extern USART_HandleTypeDef gps_handle;
-extern SPI_HandleTypeDef   screen_handle;
+extern SPI_HandleTypeDef   screen_spi_handle;
 extern TaskHandle_t        gps_task_handle;
 extern TaskHandle_t        screen_task_handle;
 
