@@ -4,3 +4,4 @@
 
 void screen_init();
 void screen_deinit();
+void screen_update();

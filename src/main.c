@@ -34,11 +34,20 @@ static void gps_task(void* v)
 {
     (void)v;
     gps_init();
+    while (1)
+    {
+        gps_update();
+    }
 }
 static void screen_task(void* v)
 {
     (void)v;
     screen_init();
+    while (1)
+    {
+        screen_update();
+        vTaskDelay(100); // nobody cares about fixed freshrate ~10Hz
+    }
 }
 static void print_reset_cause()
 {
@@ -76,8 +85,8 @@ int main()
     HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
 
     xTaskCreate(watchdog_task, "watchdog_task", 128, NULL, configMAX_PRIORITIES - 1, NULL);
-    xTaskCreate(gps_task, "gps_task", 128, NULL, 1, &gps_task_handle);
-    xTaskCreate(screen_task, "screen_task", 128, NULL, 2, &screen_task_handle);
+    xTaskCreate(gps_task, "gps_task", 1024, NULL, 1, &gps_task_handle);
+    xTaskCreate(screen_task, "screen_task", 512, NULL, 2, &screen_task_handle);
 
     printf("freertos: started\n");
     vTaskStartScheduler();
