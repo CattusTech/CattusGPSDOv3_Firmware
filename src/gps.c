@@ -112,8 +112,8 @@ void gps_update()
         {
         }
     }
-    char* message_buffer_delim_saveptr;
-    char* message_line = strtok_r(message_buffer, "\r\n", &message_buffer_delim_saveptr);
+    char* message_buffer_delim_ptr = message_buffer;
+    char* message_line = strsep(&message_buffer_delim_ptr, "\r\n");
     while (message_line != NULL)
     {
         unsigned int message_checksum = 0;
@@ -125,6 +125,7 @@ void gps_update()
             }
             else if (message_line[i] == '*')
             {
+                message_line[i] = ',';
                 break;
             }
             message_checksum ^= message_line[i];
@@ -145,19 +146,19 @@ void gps_update()
         // 12   DifferentialAge (Not Used)
         // 13   DifferentialStation (Not Used)
         // 14   Checksum
-        char* message_line_delim_saveptr;
-        char* message_id = strtok_r(message_line, ",", &message_line_delim_saveptr);
+        char* message_line_delim_ptr = message_line;
+        char* message_id = strsep(&message_line_delim_ptr, ",");
         if (strcmp(message_id + 3, "GGA") != 0)
         {
             goto message_line_next;
         }
         else
         {
-            const size_t entry_count = 14;
+            const size_t entry_count = 15;
             char*        entry_list[entry_count];
             for (size_t i = 0; i < entry_count; i++)
             {
-                entry_list[i] = strtok_r(NULL, ",", &message_line_delim_saveptr);
+                entry_list[i] = strsep(&message_line_delim_ptr, ",");
             }
             // checksum
             unsigned int checksum_l4b[2] = { (message_checksum & 0xF0) >> 4, message_checksum & 0x0F };
@@ -183,7 +184,7 @@ void gps_update()
                 // longitiude parser
                 unsigned int longitude_degree;
                 float        longitude_minute;
-                sscanf(entry_list[3], "%2u%f", &longitude_degree, &longitude_minute);
+                sscanf(entry_list[3], "%3u%f", &longitude_degree, &longitude_minute);
                 gps_longitude     = longitude_degree + longitude_minute / 60.0f;
                 gps_longitude_chr = entry_list[4][0];
                 // quality parser
@@ -218,7 +219,7 @@ void gps_update()
             }
         }
 message_line_next:
-        message_line = strtok_r(NULL, "\r\n", &message_buffer_delim_saveptr);
+        message_line = strsep(&message_buffer_delim_ptr, "\r\n");
         continue;
     }
 }
