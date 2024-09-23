@@ -10,9 +10,9 @@ GPIO_InitTypeDef         gpio_gps_tx;
 USART_HandleTypeDef      gps_handle;
 RCC_PeriphCLKInitTypeDef gps_clk;
 
-float        gps_latitude;
+double       gps_latitude;
 char         gps_latitude_chr;
-float        gps_longitude;
+double       gps_longitude;
 char         gps_longitude_chr;
 unsigned int gps_sv_number;
 float        gps_hdop;
@@ -113,7 +113,7 @@ void gps_update()
         }
     }
     char* message_buffer_delim_ptr = message_buffer;
-    char* message_line = strsep(&message_buffer_delim_ptr, "\r\n");
+    char* message_line             = strsep(&message_buffer_delim_ptr, "\r\n");
     while (message_line != NULL)
     {
         unsigned int message_checksum = 0;
@@ -147,7 +147,7 @@ void gps_update()
         // 13   DifferentialStation (Not Used)
         // 14   Checksum
         char* message_line_delim_ptr = message_line;
-        char* message_id = strsep(&message_line_delim_ptr, ",");
+        char* message_id             = strsep(&message_line_delim_ptr, ",");
         if (strcmp(message_id + 3, "GGA") != 0)
         {
             goto message_line_next;
@@ -177,14 +177,14 @@ void gps_update()
                 (void)entry_list[0];
                 // latitude parser
                 unsigned int latitude_degree;
-                float        latitude_minute;
-                sscanf(entry_list[1], "%2u%f", &latitude_degree, &latitude_minute);
+                double       latitude_minute;
+                sscanf(entry_list[1], "%2u%lf", &latitude_degree, &latitude_minute);
                 gps_latitude     = latitude_degree + latitude_minute / 60.0f;
                 gps_latitude_chr = entry_list[2][0];
                 // longitiude parser
                 unsigned int longitude_degree;
-                float        longitude_minute;
-                sscanf(entry_list[3], "%3u%f", &longitude_degree, &longitude_minute);
+                double       longitude_minute;
+                sscanf(entry_list[3], "%3u%lf", &longitude_degree, &longitude_minute);
                 gps_longitude     = longitude_degree + longitude_minute / 60.0f;
                 gps_longitude_chr = entry_list[4][0];
                 // quality parser
@@ -198,7 +198,11 @@ void gps_update()
                 {
                     printf("gps: first fix captured.\n");
                     printf(
-                        "gps: pos: %2.9f%c,%2.9f%c\n", gps_latitude, gps_latitude_chr, gps_longitude, gps_longitude_chr);
+                        "gps: pos: %12.9lf%c,%12.9lf%c\n",
+                        gps_latitude,
+                        gps_latitude_chr,
+                        gps_longitude,
+                        gps_longitude_chr);
                     gps_valid = 1;
                 }
                 else
