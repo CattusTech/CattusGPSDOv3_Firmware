@@ -1,14 +1,14 @@
 #include "screen.h"
+#include "counter.h"
 #include "gps.h"
 #include "hardware_error.h"
-#include "counter.h"
 #include "ocxo.h"
 #include <FreeRTOS.h>
 #include <stdio.h>
 #include <task.h>
 GPIO_InitTypeDef  gpio_screen_mosi;
 GPIO_InitTypeDef  gpio_screen_sck;
-GPIO_InitTypeDef  gpio_screen_nss;
+GPIO_InitTypeDef  gpio_screen_cs;
 GPIO_InitTypeDef  gpio_screen_dc;
 GPIO_InitTypeDef  gpio_screen_reset;
 TIM_HandleTypeDef screen_timer_handle;
@@ -17,24 +17,32 @@ SPI_HandleTypeDef screen_spi_handle;
 u8g2_t  u8g2_handle;
 uint8_t u8x8_byte_method(u8x8_t* u8x8, uint8_t msg, uint8_t arg_int, void* arg_ptr)
 {
-    (void)u8x8;
+    HAL_StatusTypeDef result;
     switch (msg)
     {
         case U8X8_MSG_BYTE_SEND:
-            HAL_SPI_Transmit_IT(&screen_spi_handle, (uint8_t*)arg_ptr, arg_int);
-            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+            result = HAL_SPI_Transmit(&screen_spi_handle, (uint8_t*)arg_ptr, arg_int, 199);
+            if (result != HAL_OK)
+                hal_perror("screen", "HAL_SPI_Transmit", result);
+            //ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
             break;
         case U8X8_MSG_BYTE_INIT:
-            __HAL_SPI_DISABLE(&screen_spi_handle);
+            u8x8_gpio_SetCS(u8x8, u8x8->display_info->chip_disable_level);
+            u8x8_gpio_SetReset(u8x8, 0);
+            u8x8->gpio_and_delay_cb(u8x8, U8X8_MSG_DELAY_MILLI, u8x8->display_info->reset_pulse_width_ms, NULL);
+            u8x8_gpio_SetReset(u8x8, 1);
+            u8x8->gpio_and_delay_cb(u8x8, U8X8_MSG_DELAY_MILLI, u8x8->display_info->post_reset_wait_ms, NULL);
             break;
         case U8X8_MSG_BYTE_SET_DC:
-            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, arg_int == 0 ? GPIO_PIN_RESET : GPIO_PIN_SET);
+            u8x8_gpio_SetDC(u8x8, arg_int);
             break;
         case U8X8_MSG_BYTE_START_TRANSFER:
-            __HAL_SPI_ENABLE(&screen_spi_handle);
+            u8x8_gpio_SetCS(u8x8, u8x8->display_info->chip_enable_level);  
+            u8x8->gpio_and_delay_cb(u8x8, U8X8_MSG_DELAY_NANO, u8x8->display_info->post_chip_enable_wait_ns, NULL);
             break;
         case U8X8_MSG_BYTE_END_TRANSFER:
-            __HAL_SPI_DISABLE(&screen_spi_handle);
+            u8x8->gpio_and_delay_cb(u8x8, U8X8_MSG_DELAY_NANO, u8x8->display_info->post_chip_enable_wait_ns, NULL);
+            u8x8_gpio_SetCS(u8x8, u8x8->display_info->chip_disable_level);
             break;
         default:
             return 0;
@@ -49,6 +57,10 @@ uint8_t u8x8_gpio_and_delay_method(u8x8_t* u8x8, uint8_t msg, uint8_t arg_int, v
         case U8X8_MSG_GPIO_AND_DELAY_INIT:
             break;
         case U8X8_MSG_DELAY_NANO:
+            for (size_t i = 0; i < arg_int; i++)
+            {
+                __NOP();
+            }
             break;
         case U8X8_MSG_DELAY_10MICRO:
             break;
@@ -58,9 +70,14 @@ uint8_t u8x8_gpio_and_delay_method(u8x8_t* u8x8, uint8_t msg, uint8_t arg_int, v
             vTaskDelay(arg_int);
             break;
         case U8X8_MSG_DELAY_I2C:
-        case U8X8_MSG_GPIO_I2C_CLOCK:
+        case U8X8_MSG_GPIO_CS:
+            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, arg_int);
             break;
-        case U8X8_MSG_GPIO_I2C_DATA:
+        case U8X8_MSG_GPIO_DC:
+            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, arg_int);
+            break;
+        case U8X8_MSG_GPIO_RESET:
+            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, arg_int);
             break;
         default:
             u8x8_SetGPIOResult(u8x8, 1);
@@ -85,26 +102,25 @@ void screen_init()
     gpio_screen_sck.Alternate = GPIO_AF5_SPI2;
     HAL_GPIO_Init(GPIOB, &gpio_screen_sck);
 
-    gpio_screen_nss.Pin       = GPIO_PIN_12;
-    gpio_screen_nss.Mode      = GPIO_MODE_AF_PP;
-    gpio_screen_nss.Pull      = GPIO_PULLDOWN;
-    gpio_screen_nss.Speed     = GPIO_SPEED_FREQ_MEDIUM;
-    gpio_screen_nss.Alternate = GPIO_AF5_SPI2;
-    HAL_GPIO_Init(GPIOB, &gpio_screen_nss);
+    gpio_screen_cs.Pin   = GPIO_PIN_12;
+    gpio_screen_cs.Mode  = GPIO_MODE_OUTPUT_PP;
+    gpio_screen_cs.Pull  = GPIO_PULLUP;
+    gpio_screen_cs.Speed = GPIO_SPEED_FREQ_MEDIUM;
+    HAL_GPIO_Init(GPIOB, &gpio_screen_cs);
 
     gpio_screen_dc.Pin   = GPIO_PIN_11;
-    gpio_screen_dc.Mode  = GPIO_MODE_AF_PP;
+    gpio_screen_dc.Mode  = GPIO_MODE_OUTPUT_PP;
     gpio_screen_dc.Pull  = GPIO_NOPULL;
     gpio_screen_dc.Speed = GPIO_SPEED_FREQ_MEDIUM;
     HAL_GPIO_Init(GPIOB, &gpio_screen_dc);
 
     gpio_screen_reset.Pin   = GPIO_PIN_10;
-    gpio_screen_reset.Mode  = GPIO_MODE_AF_PP;
+    gpio_screen_reset.Mode  = GPIO_MODE_OUTPUT_PP;
     gpio_screen_reset.Pull  = GPIO_PULLDOWN;
     gpio_screen_reset.Speed = GPIO_SPEED_FREQ_MEDIUM;
     HAL_GPIO_Init(GPIOB, &gpio_screen_reset);
 
-    __HAL_RCC_SPI1_CLK_ENABLE();
+    __HAL_RCC_SPI2_CLK_ENABLE();
 
     screen_spi_handle.Instance               = SPI2;
     screen_spi_handle.Init.Mode              = SPI_MODE_MASTER;
@@ -112,8 +128,8 @@ void screen_init()
     screen_spi_handle.Init.DataSize          = SPI_DATASIZE_8BIT;
     screen_spi_handle.Init.CLKPolarity       = SPI_POLARITY_HIGH;
     screen_spi_handle.Init.CLKPhase          = SPI_PHASE_2EDGE;
-    screen_spi_handle.Init.NSS               = SPI_NSS_HARD_OUTPUT;
-    screen_spi_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16; // 9Mhz
+    screen_spi_handle.Init.NSS               = SPI_NSS_SOFT;
+    screen_spi_handle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64; // 2.25Mhz
     screen_spi_handle.Init.FirstBit          = SPI_FIRSTBIT_MSB;
     screen_spi_handle.Init.TIMode            = SPI_TIMODE_DISABLE;
     screen_spi_handle.Init.CRCCalculation    = SPI_CRCCALCULATION_DISABLE;
@@ -128,6 +144,7 @@ void screen_init()
     HAL_NVIC_SetPriority(SPI2_IRQn, 2, 0);
     HAL_NVIC_EnableIRQ(SPI2_IRQn);
 
+    printf("screen: ready\n");
     u8g2_Setup_sh1106_128x64_noname_f(&u8g2_handle, U8G2_R0, u8x8_byte_method, u8x8_gpio_and_delay_method);
     u8g2_InitDisplay(&u8g2_handle);
     printf("screen: setup for sh1106_128x64_noname_f\n");

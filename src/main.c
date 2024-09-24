@@ -1,6 +1,7 @@
 #include "clock.h"
 #include "counter.h"
 #include "gps.h"
+#include "hardware_error.h"
 #include "ocxo.h"
 #include "screen.h"
 #include "swj.h"
@@ -32,8 +33,7 @@ static void watchdog_task(void* v)
         vTaskDelay(xDelay);
     }
 }
-
-static void gps_task(void* v)
+void gps_task(void* v)
 {
     (void)v;
     gps_init();
@@ -42,7 +42,7 @@ static void gps_task(void* v)
         gps_update(); // will block when no data available
     }
 }
-static void screen_task(void* v)
+void screen_task(void* v)
 {
     (void)v;
     screen_init();
@@ -52,16 +52,17 @@ static void screen_task(void* v)
         vTaskDelay(100); // nobody cares about fixed freshrate ~10Hz
     }
 }
-static void ocxo_task(void* v)
+void ocxo_task(void* v)
 {
     (void)v;
     ocxo_init();
     while (1)
     {
         ocxo_update(); // will block when no data available
+        vTaskDelay(100);
     }
 }
-static void counter_task(void* v)
+void counter_task(void* v)
 {
     (void)v;
     counter_init();
@@ -70,7 +71,7 @@ static void counter_task(void* v)
         counter_update(); // will block when no data available
     }
 }
-static void print_reset_cause()
+void print_reset_cause()
 {
     if (__HAL_RCC_GET_FLAG(RCC_FLAG_BORRST))
         printf("Last reset: Brown Out\n");
@@ -92,7 +93,10 @@ static void print_reset_cause()
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char* pcTaskName)
 {
     (void)xTask;
-    printf("freertos: stack overflow detetcd on task %s", pcTaskName);
+    while(1)
+    {
+
+    }
 }
 
 uint8_t      ucHeap[configTOTAL_HEAP_SIZE] __attribute__((section("._user_heap_stack")));
@@ -106,7 +110,6 @@ int main()
     HAL_Init();
     clock_init();
     swj_init(2000000);
-
     printf("Cattus GPSDOv3, Build time:%s %s\n", __DATE__, __TIME__);
     printf("System clock: %" PRIu32 "MHz, ", HAL_RCC_GetSysClockFreq() / 1000000);
     print_reset_cause();
@@ -114,11 +117,22 @@ int main()
     HAL_NVIC_SetPriority(PendSV_IRQn, 15, 0);
     HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
 
-    xTaskCreate(watchdog_task, "watchdog_task", 128, NULL, configMAX_PRIORITIES - 1, NULL);
-    xTaskCreate(gps_task, "gps_task", 1024, NULL, 1, &gps_task_handle);
-    xTaskCreate(screen_task, "screen_task", 512, NULL, 2, &screen_task_handle);
-    xTaskCreate(ocxo_task, "ocxo_task", 512, NULL, 3, &ocxo_task_handle);
-    xTaskCreate(counter_task, "counter_task", 512, NULL, 4, &counter_task_handle);
+    BaseType_t result;
+    result = xTaskCreate(watchdog_task, "watchdog_task", 32, NULL, configMAX_PRIORITIES - 1, NULL);
+    if (result != pdPASS)
+        hal_perror("freertos", "xTaskCreate", result);
+    //result = xTaskCreate(gps_task, "gps_task", 256, NULL, 1, &gps_task_handle);
+    if (result != pdPASS)
+        hal_perror("freertos", "xTaskCreate", result);
+    result = xTaskCreate(screen_task, "screen_task", 256, NULL, 2, &screen_task_handle);
+    if (result != pdPASS)
+        hal_perror("freertos", "xTaskCreate", result);
+    result = xTaskCreate(ocxo_task, "ocxo_task", 256, NULL, 3, &ocxo_task_handle);
+    if (result != pdPASS)
+        hal_perror("freertos", "xTaskCreate", result);
+    result = xTaskCreate(counter_task, "counter_task", 256, NULL, 4, &counter_task_handle);
+    if (result != pdPASS)
+        hal_perror("freertos", "xTaskCreate", result);
 
     printf("freertos: started\n");
     vTaskStartScheduler();

@@ -19,7 +19,7 @@ void USART1_IRQHandler(void)
     vTaskNotifyGiveFromISR(gps_task_handle, NULL);
 }
 
-void SPI2_IRQHandle(void)
+void SPI2_IRQHandler(void)
 {
     HAL_SPI_IRQHandler(&screen_spi_handle);
     vTaskNotifyGiveFromISR(screen_task_handle, NULL);
