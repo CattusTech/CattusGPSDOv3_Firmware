@@ -2,6 +2,7 @@
 #include "gps.h"
 #include "screen.h"
 #include "swj.h"
+#include "ocxo.h"
 #include <FreeRTOS.h>
 #include <inttypes.h>
 #include <message_buffer.h>
@@ -30,6 +31,7 @@ static void watchdog_task(void* v)
         vTaskDelay(xDelay);
     }
 }
+
 static void gps_task(void* v)
 {
     (void)v;
@@ -47,6 +49,15 @@ static void screen_task(void* v)
     {
         screen_update();
         vTaskDelay(100); // nobody cares about fixed freshrate ~10Hz
+    }
+}
+static void ocxo_task(void* v)
+{
+    (void)v;
+    ocxo_init();
+    while (1)
+    {
+        ocxo_update(); // will block when no data available
     }
 }
 static void print_reset_cause()
@@ -68,7 +79,7 @@ static void print_reset_cause()
     __HAL_RCC_CLEAR_RESET_FLAGS();
 }
 
-void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
+void vApplicationStackOverflowHook(TaskHandle_t xTask, char* pcTaskName)
 {
     (void)xTask;
     printf("freertos: stack overflow detetcd on task %s", pcTaskName);
@@ -77,6 +88,7 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
 uint8_t      ucHeap[configTOTAL_HEAP_SIZE] __attribute__((section("._user_heap_stack")));
 TaskHandle_t gps_task_handle;
 TaskHandle_t screen_task_handle;
+TaskHandle_t ocxo_task_handle;
 
 int main()
 {
@@ -94,6 +106,7 @@ int main()
     xTaskCreate(watchdog_task, "watchdog_task", 128, NULL, configMAX_PRIORITIES - 1, NULL);
     xTaskCreate(gps_task, "gps_task", 1024, NULL, 1, &gps_task_handle);
     xTaskCreate(screen_task, "screen_task", 512, NULL, 2, &screen_task_handle);
+    xTaskCreate(ocxo_task, "ocxo_task", 512, NULL, 2, &ocxo_task_handle);
 
     printf("freertos: started\n");
     vTaskStartScheduler();

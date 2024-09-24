@@ -1,12 +1,16 @@
 #include "hardware_error.h"
-#include <stm32g4xx_hal.h>
-
+#include <FreeRTOS.h>
+#include <task.h>
 GPIO_InitTypeDef         gpio_ocxo_vcurr;
 GPIO_InitTypeDef         gpio_ocxo_vtemp;
 RCC_PeriphCLKInitTypeDef ocxo_adc_clk;
 ADC_HandleTypeDef        ocxo_adc_handle;
 ADC_ChannelConfTypeDef   ocxo_adc_channel_vcurr;
 ADC_ChannelConfTypeDef   ocxo_adc_channel_vtemp;
+
+int ocxo_valid;
+int ocxo_overheat;
+
 static inline float caculate_adc_voltage(uint32_t data)
 {
     return data * 3.0f / 0xfff;
@@ -84,14 +88,47 @@ void ocxo_init()
     // HAL_NVIC_SetPriority(ADC1_2_IRQn, 3, 0);
     // HAL_NVIC_EnableIRQ(ADC1_2_IRQn);
 
-    result = HAL_ADC_Start(&ocxo_adc_handle);
+    result = HAL_ADC_Start_IT(&ocxo_adc_handle);
     if (result != HAL_OK)
-        hal_perror("ocxo", "HAL_ADC_Start", result);
+        hal_perror("ocxo", "HAL_ADC_Start_IT", result);
 
     printf("ocxo: adc running on vcurr and vtemp, 12bit resolution, 640.5 cycles\n");
 
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
     float vcurr = caculate_adc_voltage(HAL_ADC_GetValue(&ocxo_adc_handle));
     float vtemp = caculate_adc_voltage(HAL_ADC_GetValue(&ocxo_adc_handle));
 
-    printf("ocxo: current: %fmA, temp: %f°C\n", vcurr*2, vtemp/10);
+    printf("ocxo: current: %fmA, temp: %f°C\n", vcurr * 2, vtemp / 10);
+}
+
+void ocxo_update()
+{
+    HAL_StatusTypeDef result = HAL_ADC_Start_IT(&ocxo_adc_handle);
+    if (result != HAL_OK)
+        hal_perror("ocxo", "HAL_ADC_Start_IT", result);
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    
+    float vcurr = caculate_adc_voltage(HAL_ADC_GetValue(&ocxo_adc_handle));
+    float vtemp = caculate_adc_voltage(HAL_ADC_GetValue(&ocxo_adc_handle));
+
+    const float vcurr_threshold = 250.0f;
+    const float vtemp_threshold = 85.0f;
+
+    if (vcurr * 2 <= vcurr_threshold)
+    {
+        ocxo_valid = 1;
+    }
+    else
+    {
+        ocxo_valid = 0;
+    }
+
+    if (vtemp / 10 >= vtemp_threshold)
+    {
+        ocxo_overheat = 1;
+    }
+    else
+    {
+        ocxo_overheat = 0;
+    }
 }
