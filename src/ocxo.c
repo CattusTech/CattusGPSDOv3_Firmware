@@ -11,8 +11,8 @@ ADC_ChannelConfTypeDef   ocxo_adc_channel_vtemp;
 DAC_HandleTypeDef        ocxo_dac_handle;
 DAC_ChannelConfTypeDef   ocxo_dac_channel_vtune;
 
-int      ocxo_valid;
-int      ocxo_overheat;
+int      ocxo_valid   = 0;
+int      ocxo_overhea = 0;
 uint16_t ocxo_vtune_bin;
 
 static inline float caculate_adc_voltage(uint32_t data)

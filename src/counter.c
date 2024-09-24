@@ -10,8 +10,8 @@ TIM_ClockConfigTypeDef counter_timer_clock;
 TIM_HandleTypeDef      counter_timer_handle;
 TIM_IC_InitTypeDef     counter_timer_ic;
 arm_pid_instance_f32   counter_pid;
-unsigned int           counter_gate = 1;
-float                  counter_cycle;
+unsigned int           counter_gate  = 1;
+float                  counter_cycle = 0.0f;
 
 void counter_init()
 {
@@ -92,13 +92,13 @@ void counter_update()
         captured_cycle += 10000000;
     }
     int cycle_difference = 10000000 - captured_cycle;
-    counter_cycle = cycle_difference / counter_gate + 10000000;
+    counter_cycle        = cycle_difference / counter_gate + 10000000;
 
     printf("counter: gate: %u, captured: %u, diff: %d\n", counter_gate, captured_cycle, cycle_difference);
 
     if (cycle_difference == 0 && counter_gate != 1000)
     {
-        //counter_gate *= 10;
+        // counter_gate *= 10;
     }
     else
     {

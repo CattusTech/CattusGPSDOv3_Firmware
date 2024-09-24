@@ -10,17 +10,16 @@ GPIO_InitTypeDef         gpio_gps_tx;
 USART_HandleTypeDef      gps_handle;
 RCC_PeriphCLKInitTypeDef gps_clk;
 
-double       gps_latitude;
-char         gps_latitude_chr;
-double       gps_longitude;
-char         gps_longitude_chr;
-unsigned int gps_sv_number;
-float        gps_hdop;
-int          gps_valid;
-char         gps_mode;
-unsigned int gps_time_h;
-unsigned int gps_time_m;
-float        gps_time_s;
+double       gps_latitude      = 0.0;
+char         gps_latitude_chr  = 'N';
+double       gps_longitude     = 0.0f;
+char         gps_longitude_chr = 'E';
+unsigned int gps_sv_number     = 0;
+float        gps_hdop          = 0.0f;
+int          gps_valid         = 0;
+unsigned int gps_time_h        = 0;
+unsigned int gps_time_m        = 0;
+float        gps_time_s        = 0.0f;
 
 void gps_init()
 {
