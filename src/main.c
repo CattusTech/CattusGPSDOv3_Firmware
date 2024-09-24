@@ -1,8 +1,9 @@
 #include "clock.h"
+#include "counter.h"
 #include "gps.h"
+#include "ocxo.h"
 #include "screen.h"
 #include "swj.h"
-#include "ocxo.h"
 #include <FreeRTOS.h>
 #include <inttypes.h>
 #include <message_buffer.h>
@@ -60,6 +61,15 @@ static void ocxo_task(void* v)
         ocxo_update(); // will block when no data available
     }
 }
+static void counter_task(void* v)
+{
+    (void)v;
+    counter_init();
+    while (1)
+    {
+        counter_update(); // will block when no data available
+    }
+}
 static void print_reset_cause()
 {
     if (__HAL_RCC_GET_FLAG(RCC_FLAG_BORRST))
@@ -89,7 +99,7 @@ uint8_t      ucHeap[configTOTAL_HEAP_SIZE] __attribute__((section("._user_heap_s
 TaskHandle_t gps_task_handle;
 TaskHandle_t screen_task_handle;
 TaskHandle_t ocxo_task_handle;
-
+TaskHandle_t counter_task_handle;
 
 int main()
 {
@@ -107,7 +117,8 @@ int main()
     xTaskCreate(watchdog_task, "watchdog_task", 128, NULL, configMAX_PRIORITIES - 1, NULL);
     xTaskCreate(gps_task, "gps_task", 1024, NULL, 1, &gps_task_handle);
     xTaskCreate(screen_task, "screen_task", 512, NULL, 2, &screen_task_handle);
-    xTaskCreate(ocxo_task, "ocxo_task", 512, NULL, 2, &ocxo_task_handle);
+    xTaskCreate(ocxo_task, "ocxo_task", 512, NULL, 3, &ocxo_task_handle);
+    xTaskCreate(counter_task, "counter_task", 512, NULL, 4, &counter_task_handle);
 
     printf("freertos: started\n");
     vTaskStartScheduler();
