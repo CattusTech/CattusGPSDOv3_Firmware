@@ -38,7 +38,7 @@ void ocxo_init()
     ocxo_adc_handle.Init.LowPowerAutoWait      = DISABLE;
     ocxo_adc_handle.Init.ContinuousConvMode    = DISABLE;
     ocxo_adc_handle.Init.NbrOfConversion       = 2;
-    ocxo_adc_handle.Init.DiscontinuousConvMode = ENABLE;
+    ocxo_adc_handle.Init.DiscontinuousConvMode = DISABLE;
     ocxo_adc_handle.Init.ExternalTrigConv      = ADC_SOFTWARE_START;
     ocxo_adc_handle.Init.ExternalTrigConvEdge  = ADC_EXTERNALTRIGCONVEDGE_NONE;
     ocxo_adc_handle.Init.DMAContinuousRequests = DISABLE;
@@ -60,14 +60,14 @@ void ocxo_init()
     if (result != HAL_OK)
         hal_perror("ocxo", "HAL_ADC_ConfigChannel", result);
 
-    ocxo_adc_channel_vcurr.Channel      = ADC_CHANNEL_4;
-    ocxo_adc_channel_vcurr.Rank         = ADC_REGULAR_RANK_2;
-    ocxo_adc_channel_vcurr.SamplingTime = ADC_SAMPLETIME_640CYCLES_5;
-    ocxo_adc_channel_vcurr.SingleDiff   = ADC_SINGLE_ENDED;
-    ocxo_adc_channel_vcurr.OffsetNumber = ADC_OFFSET_NONE;
-    ocxo_adc_channel_vcurr.Offset       = 0;
+    ocxo_adc_channel_vtemp.Channel      = ADC_CHANNEL_4;
+    ocxo_adc_channel_vtemp.Rank         = ADC_REGULAR_RANK_2;
+    ocxo_adc_channel_vtemp.SamplingTime = ADC_SAMPLETIME_640CYCLES_5;
+    ocxo_adc_channel_vtemp.SingleDiff   = ADC_SINGLE_ENDED;
+    ocxo_adc_channel_vtemp.OffsetNumber = ADC_OFFSET_NONE;
+    ocxo_adc_channel_vtemp.Offset       = 0;
 
-    result = HAL_ADC_ConfigChannel(&ocxo_adc_handle, &ocxo_adc_channel_vcurr);
+    result = HAL_ADC_ConfigChannel(&ocxo_adc_handle, &ocxo_adc_channel_vtemp);
     if (result != HAL_OK)
         hal_perror("ocxo", "HAL_ADC_ConfigChannel", result);
 
@@ -81,5 +81,10 @@ void ocxo_init()
     HAL_NVIC_SetPriority(ADC1_2_IRQn, 3, 0);
     HAL_NVIC_EnableIRQ(ADC1_2_IRQn);
 
+    result = HAL_ADC_Start(&ocxo_adc_handle);
+    if (result != HAL_OK)
+        hal_perror("ocxo", "HAL_ADC_Start", result);
+
     printf("ocxo: adc running on vcurr and vtemp, 12bit resolution, 640.5 cycles\n");
+
 }
