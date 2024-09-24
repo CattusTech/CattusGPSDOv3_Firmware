@@ -142,7 +142,7 @@ void ocxo_init()
     if (result != HAL_OK)
         hal_perror("ocxo", "HAL_DAC_SetValue", result);
 
-    printf("ocxo: adc running on vtune, 12bit resolution, no buffer\n");
+    printf("ocxo: dac running on vtune, 12bit resolution, no buffer\n");
 }
 
 void ocxo_update()
