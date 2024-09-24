@@ -24,6 +24,7 @@ target_include_directories(gpsdo_v3_fw PRIVATE
     ${CMAKE_SOURCE_DIR}/thirdparty/STM32CubeG4/Drivers/STM32G4xx_HAL_Driver/Inc
     ${CMAKE_SOURCE_DIR}/thirdparty/STM32CubeG4/Drivers/CMSIS/Device/ST/STM32G4xx/Include
     ${CMAKE_SOURCE_DIR}/thirdparty/STM32CubeG4/Drivers/CMSIS/Core/Include
+    ${CMAKE_SOURCE_DIR}/thirdparty/STM32CubeG4/Drivers/CMSIS/DSP/Include
     ${CMAKE_SOURCE_DIR}/thirdparty/FreeRTOS-Kernel/include
     ${CMAKE_SOURCE_DIR}/thirdparty/u8g2/csrc/
     ${CMAKE_SOURCE_DIR}/include
@@ -35,10 +36,14 @@ target_sources(gpsdo_v3_fw PRIVATE
     ${HAL_SOURCES_C}
     ${CMAKE_SOURCE_DIR}/src/startup.s
 )
+target_link_directories(gpsdo_v3_fw PRIVATE
+    ${CMAKE_SOURCE_DIR}/thirdparty/STM32CubeG4/Drivers/CMSIS/DSP/Lib/GCC
+)
 target_link_libraries(gpsdo_v3_fw
     freertos_kernel
     freertos_config
     u8g2
+    arm_cortexM4lf_math
 )
 add_custom_command(
     TARGET gpsdo_v3_fw
