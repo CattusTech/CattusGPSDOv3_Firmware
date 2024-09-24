@@ -75,7 +75,8 @@
         "stdio.h": "c",
         "freertos.h": "c",
         "clock.h": "c",
-        "message_buffer.h": "c"
+        "message_buffer.h": "c",
+        "stm32g474e_eval.h": "c"
     },
     "C_Cpp.default.defines": [
         "STM32G431xx",

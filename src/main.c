@@ -36,7 +36,7 @@ static void gps_task(void* v)
     gps_init();
     while (1)
     {
-        gps_update();
+        gps_update(); // will block when no data available
     }
 }
 static void screen_task(void* v)
