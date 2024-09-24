@@ -72,7 +72,7 @@
 
 #define configSUPPORT_STATIC_ALLOCATION           1
 #define configSUPPORT_DYNAMIC_ALLOCATION          1
-#define configTOTAL_HEAP_SIZE                     6144U
+#define configTOTAL_HEAP_SIZE                     4096U
 #define configAPPLICATION_ALLOCATED_HEAP          1
 #define configSTACK_ALLOCATION_FROM_SEPARATE_HEAP 0
 #define configUSE_MINI_LIST_ITEM                  0
@@ -81,9 +81,9 @@
 /* Interrupt nesting behaviour configuration. *********************************/
 /******************************************************************************/
 
-#define configKERNEL_INTERRUPT_PRIORITY           0U
-#define configMAX_SYSCALL_INTERRUPT_PRIORITY      0U
-#define configMAX_API_CALL_INTERRUPT_PRIORITY     0U
+// #define configKERNEL_INTERRUPT_PRIORITY           0U
+// #define configMAX_SYSCALL_INTERRUPT_PRIORITY      0U
+// #define configMAX_API_CALL_INTERRUPT_PRIORITY     0U
 
 /******************************************************************************/
 /* Hook and callback function related definitions. ****************************/
@@ -93,7 +93,7 @@
 #define configUSE_TICK_HOOK                       0
 #define configUSE_MALLOC_FAILED_HOOK              0
 #define configUSE_DAEMON_TASK_STARTUP_HOOK        0
-#define configCHECK_FOR_STACK_OVERFLOW            2
+#define configCHECK_FOR_STACK_OVERFLOW            1
 
 /******************************************************************************/
 /* Run time and task stats gathering related definitions. *********************/
@@ -148,7 +148,7 @@ function. */
 routine that makes calls to interrupt safe FreeRTOS API functions.  DO NOT CALL
 INTERRUPT SAFE FREERTOS API FUNCTIONS FROM ANY INTERRUPT THAT HAS A HIGHER
 PRIORITY THAN THIS! (higher priorities are lower numeric values. */
-#define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY 5
+#define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY 1
 
 /* Interrupt priorities used by the kernel port layer itself.  These are generic
 to all Cortex-M ports, and do not rely on any particular library functions. */
@@ -164,8 +164,6 @@ header file. */
     if ((x) == 0)                                                              \
     {                                                                          \
         taskDISABLE_INTERRUPTS();                                              \
-        printf("freertos: assert failed: " #x " " __FILE__ ":%u\n", __LINE__); \
-        printf("freertos: stopped\n");                                         \
         for (;;)                                                               \
             ;                                                                  \
     }
