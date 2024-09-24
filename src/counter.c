@@ -10,7 +10,7 @@ TIM_ClockConfigTypeDef counter_timer_clock;
 TIM_HandleTypeDef      counter_timer_handle;
 TIM_IC_InitTypeDef     counter_timer_ic;
 arm_pid_instance_f32   counter_pid;
-unsigned int           counter_gate;
+unsigned int           counter_gate = 1;
 float                  counter_cycle;
 
 void counter_init()
@@ -18,14 +18,14 @@ void counter_init()
     gpio_counter_ref_pps.Pin       = GPIO_PIN_5;
     gpio_counter_ref_pps.Alternate = GPIO_AF10_TIM2;
     gpio_counter_ref_pps.Mode      = GPIO_MODE_AF_PP;
-    gpio_counter_ref_pps.Pull      = GPIO_NOPULL;
+    gpio_counter_ref_pps.Pull      = GPIO_PULLDOWN;
     gpio_counter_ref_pps.Speed     = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOA, &gpio_counter_ref_pps);
 
     gpio_counter_ref_pps.Pin       = GPIO_PIN_0;
     gpio_counter_ref_pps.Alternate = GPIO_AF10_TIM2;
     gpio_counter_ref_pps.Mode      = GPIO_MODE_AF_PP;
-    gpio_counter_ref_pps.Pull      = GPIO_NOPULL;
+    gpio_counter_ref_pps.Pull      = GPIO_PULLDOWN;
     gpio_counter_ref_pps.Speed     = GPIO_SPEED_FREQ_MEDIUM;
     HAL_GPIO_Init(GPIOA, &gpio_counter_ref_10m);
 
@@ -98,7 +98,7 @@ void counter_update()
 
     if (cycle_difference == 0 && counter_gate != 1000)
     {
-        counter_gate *= 10;
+        //counter_gate *= 10;
     }
     else
     {
