@@ -108,7 +108,7 @@ void gps_update()
         hal_perror("gps", "HAL_USART_GetState", status);
     }
 
-    if (strlen(message_buffer) == message_buffer_size - 1)
+    if (strlen(message_buffer) >= message_buffer_size - 1)
     {
         printf("gps: panic! message buffer overflow\n");
         while (1)
