@@ -70,8 +70,8 @@ void counter_init()
 
     printf("counter: TIM2 as counter timer, 20M period\n");
 
-    counter_pid.Kp = 3.3232f;
-    counter_pid.Ki = 1.7655f;
+    counter_pid.Kp = 3.3232e-3f;
+    counter_pid.Ki = 1.7655e-3f;
     counter_pid.Kd = 0.0f;
     arm_pid_init_f32(&counter_pid, 0);
     printf("counter: PID controller, Kp:%f, Ki:%f, Kd:%f\n", counter_pid.Kp, counter_pid.Ki, counter_pid.Kd);
@@ -93,7 +93,7 @@ void counter_update()
     }
     int cycle_difference = 10000000 - captured_cycle;
     counter_cycle = cycle_difference / counter_gate + 10000000;
-    
+
     printf("counter: gate: %u, captured: %u, diff: %d\n", counter_gate, captured_cycle, cycle_difference);
 
     if (cycle_difference == 0 && counter_gate != 1000)
@@ -103,7 +103,7 @@ void counter_update()
     else
     {
         float next_voltage = arm_pid_f32(&counter_pid, cycle_difference);
-        ocxo_vtune_bin     = caculate_dac_voltage(next_voltage / 2);
+        ocxo_vtune_bin     = caculate_dac_voltage((next_voltage + 2) / 2);
         printf("counter: cycle delta: %d, next voltage: %fV\n", cycle_difference, next_voltage);
     }
 }
