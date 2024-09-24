@@ -1,6 +1,7 @@
 #include "screen.h"
 #include "gps.h"
 #include "hardware_error.h"
+#include "ocxo.h"
 #include <FreeRTOS.h>
 #include <stdio.h>
 #include <task.h>
@@ -153,8 +154,14 @@ void screen_update()
     u8g2_DrawStr(&u8g2_handle, 40, 22, screen_string_buffer);
 
     u8g2_DrawStr(&u8g2_handle, 64, 22, "OCXO");
-    u8g2_DrawStr(&u8g2_handle, 100, 22, "1000"); // TODO
-    //
+    if (ocxo_overheat)
+    {
+        u8g2_DrawStr(&u8g2_handle, 100, 22, "OVHT!");
+    }
+    else
+    {
+        u8g2_DrawStr(&u8g2_handle, 100, 22, "1000"); // TODO // DAC value
+    }
 
     sprintf(screen_string_buffer, "Lat:  %12.9lf°%c", gps_latitude, gps_latitude_chr);
     u8g2_DrawStr(&u8g2_handle, 4, 33, screen_string_buffer);
@@ -165,7 +172,7 @@ void screen_update()
     sprintf(screen_string_buffer, "Freq: %12.9lfMhz", /*TODO */ 99.9f); // Counted frequency
     u8g2_DrawStr(&u8g2_handle, 4, 52, screen_string_buffer);
 
-    sprintf(screen_string_buffer, "%4X", /*TODO */ 1024); // DAC value
+    sprintf(screen_string_buffer, "%4u", /*TODO */ 1024); // gate value
     u8g2_DrawStr(&u8g2_handle, 4, 52, screen_string_buffer);
 
     sprintf(screen_string_buffer, "P:%04.2lf", gps_hdop);
@@ -192,8 +199,24 @@ void screen_update()
         u8g2_SetFont(&u8g2_handle, u8g2_font_open_iconic_check_1x_t);
         u8g2_DrawGlyph(&u8g2_handle, 30, 22, 68); // cross mark
     }
-
-    u8g2_DrawGlyph(&u8g2_handle, 90, 22, 'X'); // OCXO icon //TODO
+    if (ocxo_overheat)
+    {
+        if (ocxo_valid)
+        {
+            u8g2_SetFont(&u8g2_handle, u8g2_font_open_iconic_check_1x_t);
+            u8g2_DrawGlyph(&u8g2_handle, 90, 22, 64); // check mark
+        }
+        else
+        {
+            u8g2_SetFont(&u8g2_handle, u8g2_font_open_iconic_check_1x_t);
+            u8g2_DrawGlyph(&u8g2_handle, 90, 22, 68); // cross mark
+        }
+    }
+    else
+    {
+        u8g2_SetFont(&u8g2_handle, u8g2_font_open_iconic_embedded_1x_t);
+        u8g2_DrawGlyph(&u8g2_handle, 90, 22, 71); // warning mark
+    }
 
     u8g2_SendBuffer(&u8g2_handle);
 };
