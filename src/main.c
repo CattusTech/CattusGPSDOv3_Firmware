@@ -121,7 +121,7 @@ int main()
     result = xTaskCreate(watchdog_task, "watchdog_task", 32, NULL, configMAX_PRIORITIES - 1, NULL);
     if (result != pdPASS)
         hal_perror("freertos", "xTaskCreate", result);
-    //result = xTaskCreate(gps_task, "gps_task", 256, NULL, 1, &gps_task_handle);
+    result = xTaskCreate(gps_task, "gps_task", 512, NULL, 1, &gps_task_handle);
     if (result != pdPASS)
         hal_perror("freertos", "xTaskCreate", result);
     result = xTaskCreate(screen_task, "screen_task", 512, NULL, 2, &screen_task_handle);
