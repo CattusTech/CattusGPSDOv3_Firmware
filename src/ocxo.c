@@ -7,7 +7,10 @@ RCC_PeriphCLKInitTypeDef ocxo_adc_clk;
 ADC_HandleTypeDef        ocxo_adc_handle;
 ADC_ChannelConfTypeDef   ocxo_adc_channel_vcurr;
 ADC_ChannelConfTypeDef   ocxo_adc_channel_vtemp;
-
+static inline float caculate_adc_voltage(uint32_t data)
+{
+    return data * 3.0f / 0xfff;
+}
 void ocxo_init()
 {
     gpio_ocxo_vcurr.Pin  = GPIO_PIN_6;
@@ -78,8 +81,8 @@ void ocxo_init()
     if (result != HAL_OK)
         hal_perror("ocxo", "HAL_ADCEx_Calibration_Start", result);
 
-    HAL_NVIC_SetPriority(ADC1_2_IRQn, 3, 0);
-    HAL_NVIC_EnableIRQ(ADC1_2_IRQn);
+    // HAL_NVIC_SetPriority(ADC1_2_IRQn, 3, 0);
+    // HAL_NVIC_EnableIRQ(ADC1_2_IRQn);
 
     result = HAL_ADC_Start(&ocxo_adc_handle);
     if (result != HAL_OK)
@@ -87,4 +90,8 @@ void ocxo_init()
 
     printf("ocxo: adc running on vcurr and vtemp, 12bit resolution, 640.5 cycles\n");
 
+    float vcurr = caculate_adc_voltage(HAL_ADC_GetValue(&ocxo_adc_handle));
+    float vtemp = caculate_adc_voltage(HAL_ADC_GetValue(&ocxo_adc_handle));
+
+    printf("ocxo: current: %fmA, temp: %f°C\n", vcurr*2, vtemp/10);
 }
