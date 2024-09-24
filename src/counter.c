@@ -1,6 +1,7 @@
 #include "hardware_error.h"
 #include "ocxo.h"
 #include <FreeRTOS.h>
+#include <arm_math.h>
 #include <stm32g4xx_hal.h>
 #include <task.h>
 GPIO_InitTypeDef       gpio_counter_ref_pps;
@@ -8,8 +9,9 @@ GPIO_InitTypeDef       gpio_counter_ref_10m;
 TIM_ClockConfigTypeDef counter_timer_clock;
 TIM_HandleTypeDef      counter_timer_handle;
 TIM_IC_InitTypeDef     counter_timer_ic;
-
-unsigned int counter_gate;
+arm_pid_instance_f32   counter_pid;
+unsigned int           counter_gate;
+float                  counter_cycle;
 
 void counter_init()
 {
@@ -67,4 +69,41 @@ void counter_init()
         hal_perror("counter", "HAL_TIM_IC_Start", result);
 
     printf("counter: TIM2 as counter timer, 20M period\n");
+
+    counter_pid.Kp = 3.3232f;
+    counter_pid.Ki = 1.7655f;
+    counter_pid.Kd = 0.0f;
+    arm_pid_init_f32(&counter_pid, 0);
+    printf("counter: PID controller, Kp:%f, Ki:%f, Kd:%f\n", counter_pid.Kp, counter_pid.Ki, counter_pid.Kd);
+}
+static inline uint16_t caculate_dac_voltage(float voltage)
+{
+    return voltage / 3.0f * 0xfff;
+}
+void counter_update()
+{
+    for (size_t i = 0; i < counter_gate; i++)
+    {
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    }
+    unsigned int captured_cycle = HAL_TIM_ReadCapturedValue(&counter_timer_handle, TIM_CHANNEL_1);
+    if (captured_cycle < 5000000)
+    {
+        captured_cycle += 10000000;
+    }
+    int cycle_difference = 10000000 - captured_cycle;
+    counter_cycle = cycle_difference / counter_gate + 10000000;
+    
+    printf("counter: gate: %u, captured: %u, diff: %d\n", counter_gate, captured_cycle, cycle_difference);
+
+    if (cycle_difference == 0 && counter_gate != 1000)
+    {
+        counter_gate *= 10;
+    }
+    else
+    {
+        float next_voltage = arm_pid_f32(&counter_pid, cycle_difference);
+        ocxo_vtune_bin     = caculate_dac_voltage(next_voltage / 2);
+        printf("counter: cycle delta: %d, next voltage: %fV\n", cycle_difference, next_voltage);
+    }
 }
