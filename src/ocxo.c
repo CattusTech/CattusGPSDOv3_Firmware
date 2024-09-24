@@ -89,8 +89,8 @@ void ocxo_init()
     if (result != HAL_OK)
         hal_perror("ocxo", "HAL_ADCEx_Calibration_Start", result);
 
-    // HAL_NVIC_SetPriority(ADC1_2_IRQn, 3, 0);
-    // HAL_NVIC_EnableIRQ(ADC1_2_IRQn);
+    HAL_NVIC_SetPriority(ADC1_2_IRQn, 3, 0);
+    HAL_NVIC_EnableIRQ(ADC1_2_IRQn);
 
     result = HAL_ADC_Start_IT(&ocxo_adc_handle);
     if (result != HAL_OK)
