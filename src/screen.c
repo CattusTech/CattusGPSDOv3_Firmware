@@ -1,6 +1,7 @@
 #include "screen.h"
 #include "gps.h"
 #include "hardware_error.h"
+#include "counter.h"
 #include "ocxo.h"
 #include <FreeRTOS.h>
 #include <stdio.h>
@@ -170,10 +171,10 @@ void screen_update()
     sprintf(screen_string_buffer, "Lon: %12.9lf°%c", gps_longitude, gps_longitude_chr);
     u8g2_DrawStr(&u8g2_handle, 4, 43, screen_string_buffer);
 
-    sprintf(screen_string_buffer, "Freq: %12.9lfMhz", /*TODO */ 99.9f); // Counted frequency
+    sprintf(screen_string_buffer, "Freq: %12.9lfMhz", counter_cycle / 10000000);
     u8g2_DrawStr(&u8g2_handle, 4, 52, screen_string_buffer);
 
-    sprintf(screen_string_buffer, "%4u", /*TODO */ 1024); // gate value
+    sprintf(screen_string_buffer, "%4u", counter_gate);
     u8g2_DrawStr(&u8g2_handle, 4, 52, screen_string_buffer);
 
     sprintf(screen_string_buffer, "P:%04.2lf", gps_hdop);
