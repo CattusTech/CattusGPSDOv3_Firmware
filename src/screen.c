@@ -160,7 +160,8 @@ void screen_update()
     }
     else
     {
-        u8g2_DrawStr(&u8g2_handle, 100, 22, "1000"); // TODO // DAC value
+        sprintf(screen_string_buffer, "%04X", ocxo_vtune_bin);
+        u8g2_DrawStr(&u8g2_handle, 100, 22, screen_string_buffer);
     }
 
     sprintf(screen_string_buffer, "Lat:  %12.9lf°%c", gps_latitude, gps_latitude_chr);

@@ -3,13 +3,17 @@
 #include <task.h>
 GPIO_InitTypeDef         gpio_ocxo_vcurr;
 GPIO_InitTypeDef         gpio_ocxo_vtemp;
+GPIO_InitTypeDef         gpio_ocxo_vtune;
 RCC_PeriphCLKInitTypeDef ocxo_adc_clk;
 ADC_HandleTypeDef        ocxo_adc_handle;
 ADC_ChannelConfTypeDef   ocxo_adc_channel_vcurr;
 ADC_ChannelConfTypeDef   ocxo_adc_channel_vtemp;
+DAC_HandleTypeDef        ocxo_dac_handle;
+DAC_ChannelConfTypeDef   ocxo_dac_channel_vtune;
 
-int ocxo_valid;
-int ocxo_overheat;
+int      ocxo_valid;
+int      ocxo_overheat;
+uint16_t ocxo_vtune_bin;
 
 static inline float caculate_adc_voltage(uint32_t data)
 {
@@ -99,6 +103,46 @@ void ocxo_init()
     float vtemp = caculate_adc_voltage(HAL_ADC_GetValue(&ocxo_adc_handle));
 
     printf("ocxo: current: %fmA, temp: %f°C\n", vcurr * 2, vtemp / 10);
+
+    gpio_ocxo_vtemp.Pin  = GPIO_PIN_4;
+    gpio_ocxo_vtemp.Mode = GPIO_MODE_ANALOG;
+    gpio_ocxo_vtemp.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOA, &gpio_ocxo_vtune);
+
+    ocxo_dac_handle.Instance = DAC1;
+
+    result = HAL_DAC_Init(&ocxo_dac_handle);
+    if (result != HAL_OK)
+        hal_perror("ocxo", "HAL_DAC_Init", result);
+
+    ocxo_dac_channel_vtune.DAC_HighFrequency           = DAC_HIGH_FREQUENCY_INTERFACE_MODE_AUTOMATIC;
+    ocxo_dac_channel_vtune.DAC_DMADoubleDataMode       = DISABLE;
+    ocxo_dac_channel_vtune.DAC_SignedFormat            = DISABLE;
+    ocxo_dac_channel_vtune.DAC_SampleAndHold           = DAC_SAMPLEANDHOLD_DISABLE;
+    ocxo_dac_channel_vtune.DAC_Trigger                 = DAC_TRIGGER_SOFTWARE;
+    ocxo_dac_channel_vtune.DAC_Trigger2                = DAC_TRIGGER_NONE;
+    ocxo_dac_channel_vtune.DAC_OutputBuffer            = DAC_OUTPUTBUFFER_DISABLE;
+    ocxo_dac_channel_vtune.DAC_ConnectOnChipPeripheral = DAC_CHIPCONNECT_EXTERNAL;
+    ocxo_dac_channel_vtune.DAC_UserTrimming            = DAC_TRIMMING_FACTORY;
+
+    result = HAL_DAC_ConfigChannel(&ocxo_dac_handle, &ocxo_dac_channel_vtune, DAC_CHANNEL_1);
+    if (result != HAL_OK)
+        hal_perror("ocxo", "HAL_DAC_ConfigChannel", result);
+
+    result = HAL_DACEx_SelfCalibrate(&ocxo_dac_handle, &ocxo_dac_channel_vtune, DAC_CHANNEL_1);
+    if (result != HAL_OK)
+        hal_perror("ocxo", "HAL_DACEx_SelfCalibrate", result);
+
+    result = HAL_DACEx_DualStart(&ocxo_dac_handle);
+    if (result != HAL_OK)
+        hal_perror("ocxo", "HAL_DACEx_DualStart", result);
+
+    ocxo_vtune_bin = 0xfff / 2;
+    result         = HAL_DAC_SetValue(&ocxo_dac_handle, DAC_CHANNEL_1, DAC_ALIGN_12B_R, ocxo_vtune_bin);
+    if (result != HAL_OK)
+        hal_perror("ocxo", "HAL_DAC_SetValue", result);
+
+    printf("ocxo: adc running on vtune, 12bit resolution, no buffer\n");
 }
 
 void ocxo_update()
@@ -107,7 +151,7 @@ void ocxo_update()
     if (result != HAL_OK)
         hal_perror("ocxo", "HAL_ADC_Start_IT", result);
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-    
+
     float vcurr = caculate_adc_voltage(HAL_ADC_GetValue(&ocxo_adc_handle));
     float vtemp = caculate_adc_voltage(HAL_ADC_GetValue(&ocxo_adc_handle));
 

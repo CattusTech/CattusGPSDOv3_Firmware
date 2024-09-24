@@ -3,5 +3,6 @@
 void ocxo_init();
 void ocxo_update();
 
-extern int ocxo_valid;
-extern int ocxo_overheat;
+extern int      ocxo_valid;
+extern int      ocxo_overheat;
+extern uint16_t ocxo_vtune_bin;
