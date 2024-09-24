@@ -24,7 +24,7 @@ uint8_t u8x8_byte_method(u8x8_t* u8x8, uint8_t msg, uint8_t arg_int, void* arg_p
             result = HAL_SPI_Transmit(&screen_spi_handle, (uint8_t*)arg_ptr, arg_int, 199);
             if (result != HAL_OK)
                 hal_perror("screen", "HAL_SPI_Transmit", result);
-            //ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+            // ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
             break;
         case U8X8_MSG_BYTE_INIT:
             u8x8_gpio_SetCS(u8x8, u8x8->display_info->chip_disable_level);
@@ -37,7 +37,7 @@ uint8_t u8x8_byte_method(u8x8_t* u8x8, uint8_t msg, uint8_t arg_int, void* arg_p
             u8x8_gpio_SetDC(u8x8, arg_int);
             break;
         case U8X8_MSG_BYTE_START_TRANSFER:
-            u8x8_gpio_SetCS(u8x8, u8x8->display_info->chip_enable_level);  
+            u8x8_gpio_SetCS(u8x8, u8x8->display_info->chip_enable_level);
             u8x8->gpio_and_delay_cb(u8x8, U8X8_MSG_DELAY_NANO, u8x8->display_info->post_chip_enable_wait_ns, NULL);
             break;
         case U8X8_MSG_BYTE_END_TRANSFER:
@@ -168,7 +168,7 @@ void screen_update()
     u8g2_DrawLine(&u8g2_handle, 0, 11, 127, 11);
 
     u8g2_DrawStr(&u8g2_handle, 4, 22, "GNSS");
-    sprintf(screen_string_buffer, "Lat:  %02u", gps_sv_number);
+    sprintf(screen_string_buffer, "%02u", gps_sv_number);
     u8g2_DrawStr(&u8g2_handle, 40, 22, screen_string_buffer);
 
     u8g2_DrawStr(&u8g2_handle, 64, 22, "OCXO");
@@ -182,22 +182,22 @@ void screen_update()
         u8g2_DrawStr(&u8g2_handle, 100, 22, screen_string_buffer);
     }
 
-    sprintf(screen_string_buffer, "Lat:  %12.9lf°%c", gps_latitude, gps_latitude_chr);
+    sprintf(screen_string_buffer, "Lat:  %12.9lf\xb0%c", gps_latitude, gps_latitude_chr);
     u8g2_DrawStr(&u8g2_handle, 4, 33, screen_string_buffer);
 
-    sprintf(screen_string_buffer, "Lon: %12.9lf°%c", gps_longitude, gps_longitude_chr);
+    sprintf(screen_string_buffer, "Lon: %13.9lf\xb0%c", gps_longitude, gps_longitude_chr);
     u8g2_DrawStr(&u8g2_handle, 4, 43, screen_string_buffer);
 
     sprintf(screen_string_buffer, "Freq: %12.9lfMhz", counter_cycle / 10000000);
     u8g2_DrawStr(&u8g2_handle, 4, 52, screen_string_buffer);
 
-    sprintf(screen_string_buffer, "%4u", counter_gate);
-    u8g2_DrawStr(&u8g2_handle, 4, 52, screen_string_buffer);
+    sprintf(screen_string_buffer, "%-4u", counter_gate);
+    u8g2_DrawStr(&u8g2_handle, 4, 62, screen_string_buffer);
 
     sprintf(screen_string_buffer, "P:%04.2lf", gps_hdop);
     u8g2_DrawStr(&u8g2_handle, 32, 62, screen_string_buffer);
 
-    sprintf(screen_string_buffer, "%2u:%2u:%2u", gps_time_h, gps_time_m, (unsigned int)gps_time_s);
+    sprintf(screen_string_buffer, "%02u:%02u:%02u", gps_time_h, gps_time_m, (unsigned int)gps_time_s);
     u8g2_DrawStr(&u8g2_handle, 77, 62, screen_string_buffer);
 
     if (gps_valid)
