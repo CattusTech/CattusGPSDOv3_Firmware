@@ -21,10 +21,10 @@ uint8_t u8x8_byte_method(u8x8_t* u8x8, uint8_t msg, uint8_t arg_int, void* arg_p
     switch (msg)
     {
         case U8X8_MSG_BYTE_SEND:
-            result = HAL_SPI_Transmit(&screen_spi_handle, (uint8_t*)arg_ptr, arg_int, 199);
+            result = HAL_SPI_Transmit_IT(&screen_spi_handle, (uint8_t*)arg_ptr, arg_int);
             if (result != HAL_OK)
                 hal_perror("screen", "HAL_SPI_Transmit", result);
-            // ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
             break;
         case U8X8_MSG_BYTE_INIT:
             u8x8_gpio_SetCS(u8x8, u8x8->display_info->chip_disable_level);
@@ -218,6 +218,7 @@ void screen_update()
         u8g2_SetFont(&u8g2_handle, u8g2_font_open_iconic_check_1x_t);
         u8g2_DrawGlyph(&u8g2_handle, 30, 22, 68); // cross mark
     }
+    
     if (ocxo_overheat)
     {
         if (ocxo_valid)

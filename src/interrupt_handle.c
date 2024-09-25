@@ -18,19 +18,19 @@ void USART1_IRQHandler(void)
     HAL_USART_IRQHandler(&gps_handle);
     vTaskNotifyGiveFromISR(gps_task_handle, NULL);
 }
-
 void SPI2_IRQHandler(void)
 {
     HAL_SPI_IRQHandler(&screen_spi_handle);
+}
+void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
+{
     vTaskNotifyGiveFromISR(screen_task_handle, NULL);
 }
-
 void ADC1_2_IRQHandler(void)
 {
     HAL_ADC_IRQHandler(&ocxo_adc_handle);
     vTaskNotifyGiveFromISR(ocxo_task_handle, NULL);
 }
-
 void TIM2_IRQHandler(void)
 {
     HAL_TIM_IRQHandler(&counter_timer_handle);
