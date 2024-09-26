@@ -72,8 +72,8 @@
 
 #define configSUPPORT_STATIC_ALLOCATION           1
 #define configSUPPORT_DYNAMIC_ALLOCATION          1
-#define configTOTAL_HEAP_SIZE                     6144U
-#define configAPPLICATION_ALLOCATED_HEAP          1
+#define configTOTAL_HEAP_SIZE                     7168U
+#define configAPPLICATION_ALLOCATED_HEAP          0
 #define configSTACK_ALLOCATION_FROM_SEPARATE_HEAP 0
 #define configUSE_MINI_LIST_ITEM                  0
 
@@ -93,7 +93,7 @@
 #define configUSE_TICK_HOOK                       0
 #define configUSE_MALLOC_FAILED_HOOK              0
 #define configUSE_DAEMON_TASK_STARTUP_HOOK        0
-#define configCHECK_FOR_STACK_OVERFLOW            1
+#define configCHECK_FOR_STACK_OVERFLOW            2
 
 /******************************************************************************/
 /* Run time and task stats gathering related definitions. *********************/

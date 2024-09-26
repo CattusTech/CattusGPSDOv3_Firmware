@@ -93,13 +93,12 @@ void print_reset_cause()
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char* pcTaskName)
 {
     (void)xTask;
-    while(1)
+    (void)pcTaskName;
+    while (1)
     {
-
     }
 }
 
-uint8_t      ucHeap[configTOTAL_HEAP_SIZE] __attribute__((section("._user_heap_stack")));
 TaskHandle_t gps_task_handle;
 TaskHandle_t screen_task_handle;
 TaskHandle_t ocxo_task_handle;
@@ -118,13 +117,13 @@ int main()
     HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
 
     BaseType_t result;
-    result = xTaskCreate(watchdog_task, "watchdog_task", 32, NULL, configMAX_PRIORITIES - 1, NULL);
+    result = xTaskCreate(watchdog_task, "watchdog_task", 128, NULL, configMAX_PRIORITIES - 1, NULL);
     if (result != pdPASS)
         hal_perror("freertos", "xTaskCreate", result);
-    result = xTaskCreate(gps_task, "gps_task", 512, NULL, 1, &gps_task_handle);
+    result = xTaskCreate(gps_task, "gps_task", 512, NULL, configMAX_PRIORITIES - 2, &gps_task_handle);
     if (result != pdPASS)
         hal_perror("freertos", "xTaskCreate", result);
-    result = xTaskCreate(screen_task, "screen_task", 512, NULL, 2, &screen_task_handle);
+    result = xTaskCreate(screen_task, "screen_task", 256, NULL, 2, &screen_task_handle);
     if (result != pdPASS)
         hal_perror("freertos", "xTaskCreate", result);
     result = xTaskCreate(ocxo_task, "ocxo_task", 256, NULL, 3, &ocxo_task_handle);
