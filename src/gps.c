@@ -7,7 +7,7 @@
 
 GPIO_InitTypeDef         gpio_gps_rx;
 GPIO_InitTypeDef         gpio_gps_tx;
-USART_HandleTypeDef      gps_handle;
+UART_HandleTypeDef       gps_handle;
 RCC_PeriphCLKInitTypeDef gps_clk;
 
 double       gps_latitude      = 0.0;
@@ -46,30 +46,31 @@ void gps_init()
 
     __HAL_RCC_USART1_CLK_ENABLE();
 
-    gps_handle.Instance            = USART1;
-    gps_handle.Init.BaudRate       = 9600;
-    gps_handle.Init.WordLength     = USART_WORDLENGTH_8B;
-    gps_handle.Init.StopBits       = USART_STOPBITS_1;
-    gps_handle.Init.Parity         = USART_PARITY_NONE;
-    gps_handle.Init.Mode           = USART_MODE_TX_RX;
-    gps_handle.Init.CLKPolarity    = USART_POLARITY_LOW;
-    gps_handle.Init.CLKPhase       = USART_PHASE_1EDGE;
-    gps_handle.Init.CLKLastBit     = USART_LASTBIT_ENABLE;
-    gps_handle.Init.ClockPrescaler = USART_PRESCALER_DIV1;
-    gps_handle.SlaveMode           = USART_SLAVEMODE_DISABLE;
+    gps_handle.Instance                    = USART1;
+    gps_handle.Init.BaudRate               = 38400;
+    gps_handle.Init.WordLength             = UART_WORDLENGTH_8B;
+    gps_handle.Init.StopBits               = UART_STOPBITS_1;
+    gps_handle.Init.Parity                 = UART_PARITY_NONE;
+    gps_handle.Init.Mode                   = UART_MODE_TX_RX;
+    gps_handle.Init.HwFlowCtl              = UART_HWCONTROL_NONE;
+    gps_handle.Init.OverSampling           = UART_OVERSAMPLING_16;
+    gps_handle.Init.OneBitSampling         = UART_ONE_BIT_SAMPLE_DISABLE;
+    gps_handle.Init.ClockPrescaler         = UART_PRESCALER_DIV1;
+    gps_handle.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_RXOVERRUNDISABLE_INIT;
+    gps_handle.AdvancedInit.OverrunDisable = UART_ADVFEATURE_OVERRUN_DISABLE;
 
-    result = HAL_USART_Init(&gps_handle);
+    result = HAL_UART_Init(&gps_handle);
     if (result != HAL_OK)
         hal_perror("gps", "HAL_USART_Init", result);
-    result = HAL_USARTEx_SetTxFifoThreshold(&gps_handle, USART_TXFIFO_THRESHOLD_1_8);
+    result = HAL_UARTEx_SetTxFifoThreshold(&gps_handle, USART_TXFIFO_THRESHOLD_1_8);
     if (result != HAL_OK)
         hal_perror("gps", "HAL_USARTEx_SetTxFifoThreshold", result);
-    result = HAL_USARTEx_SetRxFifoThreshold(&gps_handle, USART_RXFIFO_THRESHOLD_1_8);
+    result = HAL_UARTEx_SetRxFifoThreshold(&gps_handle, USART_RXFIFO_THRESHOLD_8_8);
     if (result != HAL_OK)
         hal_perror("gps", "HAL_USARTEx_SetRxFifoThreshold", result);
-    result = HAL_USARTEx_DisableFifoMode(&gps_handle);
+    result = HAL_UARTEx_EnableFifoMode(&gps_handle);
     if (result != HAL_OK)
-        hal_perror("gps", "HAL_USARTEx_DisableFifoMode", result);
+        hal_perror("gps", "HAL_UARTEx_EnableFifoMode", result);
 
     HAL_NVIC_SetPriority(USART1_IRQn, 1, 0);
     HAL_NVIC_EnableIRQ(USART1_IRQn);
@@ -83,7 +84,7 @@ void gps_deinit()
 
     __HAL_RCC_USART1_FORCE_RESET();
     __HAL_RCC_USART1_RELEASE_RESET();
-    HAL_USART_DeInit(&(gps_handle));
+    HAL_UART_DeInit(&(gps_handle));
 
     __HAL_RCC_USART1_CLK_DISABLE();
 
@@ -91,141 +92,123 @@ void gps_deinit()
     HAL_GPIO_DeInit(GPIOB, GPIO_PIN_6);
 }
 
+char   uart_line_buffer[UART_LINE_BUFFER_SIZE];
+size_t uart_line_ptr;
+char*  gps_getline()
+{
+    uart_line_ptr = 0;
+    memset(uart_line_buffer, 0, UART_LINE_BUFFER_SIZE);
+
+    HAL_UART_Receive_IT(&gps_handle, (uint8_t *)uart_line_buffer + uart_line_ptr, 1); // emit!
+
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    return uart_line_buffer;
+}
+
 void gps_update()
 {
-    const size_t message_buffer_size = 512;
-    char         message_buffer[message_buffer_size];
-    HAL_USART_Receive_IT(&(gps_handle), (uint8_t*)(message_buffer), message_buffer_size - 1);
+    char* message_line = gps_getline();
 
-    HAL_USART_StateTypeDef status = HAL_USART_GetState(&(gps_handle));
-    if (status == HAL_USART_STATE_BUSY_RX)
+    unsigned int message_checksum = 0;
+    for (size_t i = 0; i < strlen(message_line); i++)
     {
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-    }
-    else if (status == HAL_USART_STATE_ERROR)
-    {
-        hal_perror("gps", "HAL_USART_GetState", status);
-    }
-
-    if (strlen(message_buffer) >= message_buffer_size - 1)
-    {
-        printf("gps: panic! message buffer overflow\n");
-        while (1)
+        if (message_line[i] == '$')
         {
+            continue;
         }
-    }
-    char* message_buffer_delim_ptr = message_buffer;
-    char* message_line             = strsep(&message_buffer_delim_ptr, "\r\n");
-    while (message_line != NULL)
-    {
-        unsigned int message_checksum = 0;
-        for (size_t i = 0; i < strlen(message_line); i++)
+        else if (message_line[i] == '*')
         {
-            if (message_line[i] == '$')
-            {
-                continue;
-            }
-            else if (message_line[i] == '*')
-            {
-                message_line[i] = ',';
-                break;
-            }
-            message_checksum ^= message_line[i];
+            message_line[i] = ',';
+            break;
         }
-        // -1   $xxGGA
-        // 0    Time (Not Used)
-        // 1    Latitude
-        // 2    N/S
-        // 3    Longitude
-        // 4    E/W
-        // 5    Quality
-        // 6    SvNumber
-        // 7    HDOP
-        // 8    Altitude (Not Used)
-        // 9    "M"
-        // 10   Separation (Not Used)
-        // 11   "M"
-        // 12   DifferentialAge (Not Used)
-        // 13   DifferentialStation (Not Used)
-        // 14   Checksum
-        char* message_line_delim_ptr = message_line;
-        char* message_id             = strsep(&message_line_delim_ptr, ",");
-        if (strcmp(message_id + 3, "GGA") != 0)
+        message_checksum ^= message_line[i];
+    }
+    // -1   $xxGGA
+    // 0    Time (Not Used)
+    // 1    Latitude
+    // 2    N/S
+    // 3    Longitude
+    // 4    E/W
+    // 5    Quality
+    // 6    SvNumber
+    // 7    HDOP
+    // 8    Altitude (Not Used)
+    // 9    "M"
+    // 10   Separation (Not Used)
+    // 11   "M"
+    // 12   DifferentialAge (Not Used)
+    // 13   DifferentialStation (Not Used)
+    // 14   Checksum
+    char* message_line_delim_ptr = message_line;
+    char* message_id             = strsep(&message_line_delim_ptr, ",");
+    if (strcmp(message_id + 3, "GGA") != 0)
+    {
+        return;
+    }
+    else
+    {
+        const size_t entry_count = 15;
+        char*        entry_list[entry_count];
+        for (size_t i = 0; i < entry_count; i++)
         {
-            goto message_line_next;
+            entry_list[i] = strsep(&message_line_delim_ptr, ",");
+        }
+        // checksum
+        unsigned int checksum_l4b[2] = { (message_checksum & 0xF0) >> 4, message_checksum & 0x0F };
+        char         checksum_chr[2] = {
+            (char)((checksum_l4b[0] <= 0x9) ? (checksum_l4b[0] + '0') : (checksum_l4b[0] - 10 + 'A')),
+            (char)((checksum_l4b[1] <= 0x9) ? (checksum_l4b[1] + '0') : (checksum_l4b[1] - 10 + 'A'))
+        };
+        if (entry_list[14][0] != checksum_chr[0] || entry_list[14][1] != checksum_chr[1])
+        {
+            printf("gps: crtical warning! a checksum error has been detected, skipped.\n");
+            return;
         }
         else
         {
-            const size_t entry_count = 15;
-            char*        entry_list[entry_count];
-            for (size_t i = 0; i < entry_count; i++)
+            // time unused
+            sscanf(entry_list[0], "%2u%2u%f", &gps_time_h, &gps_time_m, &gps_time_s);
+            // latitude parser
+            unsigned int latitude_degree;
+            float        latitude_minute;
+            sscanf(entry_list[1], "%2u%f", &latitude_degree, &latitude_minute);
+            gps_latitude     = (float)latitude_degree + latitude_minute / 60.0f;
+            gps_latitude_chr = entry_list[2][0];
+            // longitiude parser
+            unsigned int longitude_degree;
+            float        longitude_minute;
+            sscanf(entry_list[3], "%3u%f", &longitude_degree, &longitude_minute);
+            gps_longitude     = (float)longitude_degree + longitude_minute / 60.0f;
+            gps_longitude_chr = entry_list[4][0];
+            // quality parser
+            unsigned int quality;
+            sscanf(entry_list[5], "%u", &quality);
+            if (quality == 0 || quality == 6)
             {
-                entry_list[i] = strsep(&message_line_delim_ptr, ",");
+                gps_valid = 0;
             }
-            // checksum
-            unsigned int checksum_l4b[2] = { (message_checksum & 0xF0) >> 4, message_checksum & 0x0F };
-            char         checksum_chr[2] = {
-                (char)((checksum_l4b[0] <= 0x9) ? (checksum_l4b[0] + '0') : (checksum_l4b[0] - 10 + 'A')),
-                (char)((checksum_l4b[1] <= 0x9) ? (checksum_l4b[1] + '0') : (checksum_l4b[1] - 10 + 'A'))
-            };
-            if (entry_list[14][1] != checksum_chr[0] || entry_list[14][2] != checksum_chr[1])
+            else if (gps_valid == 0)
             {
-                printf("gps: crtical warning! a checksum error has been detected, skipped.\n");
-                goto message_line_next;
+                printf("gps: first fix captured.\n");
+                printf(
+                    "gps: pos: %12.9lf%c,%12.9lf%c\n", gps_latitude, gps_latitude_chr, gps_longitude, gps_longitude_chr);
+                gps_valid = 1;
             }
             else
             {
-                // time unused
-                sscanf(entry_list[0], "%2u%2u%f", &gps_time_h, &gps_time_m, &gps_time_s);
-                // latitude parser
-                unsigned int latitude_degree;
-                double       latitude_minute;
-                sscanf(entry_list[1], "%2u%lf", &latitude_degree, &latitude_minute);
-                gps_latitude     = latitude_degree + latitude_minute / 60.0f;
-                gps_latitude_chr = entry_list[2][0];
-                // longitiude parser
-                unsigned int longitude_degree;
-                double       longitude_minute;
-                sscanf(entry_list[3], "%3u%lf", &longitude_degree, &longitude_minute);
-                gps_longitude     = longitude_degree + longitude_minute / 60.0f;
-                gps_longitude_chr = entry_list[4][0];
-                // quality parser
-                unsigned int quality;
-                sscanf(entry_list[5], "%u", &quality);
-                if (quality == 0 || quality == 6)
-                {
-                    gps_valid = 0;
-                }
-                else if (gps_valid == 0)
-                {
-                    printf("gps: first fix captured.\n");
-                    printf(
-                        "gps: pos: %12.9lf%c,%12.9lf%c\n",
-                        gps_latitude,
-                        gps_latitude_chr,
-                        gps_longitude,
-                        gps_longitude_chr);
-                    gps_valid = 1;
-                }
-                else
-                {
-                    gps_valid = 1;
-                }
-                // svnumber parser
-                sscanf(entry_list[6], "%u", &(gps_sv_number));
-                // HDOP
-                sscanf(entry_list[7], "%f", &(gps_hdop));
-
-                (void)entry_list[8];
-                (void)entry_list[9];
-                (void)entry_list[10];
-                (void)entry_list[11];
-                (void)entry_list[12];
-                (void)entry_list[13];
+                gps_valid = 1;
             }
+            // svnumber parser
+            sscanf(entry_list[6], "%u", &(gps_sv_number));
+            // HDOP
+            sscanf(entry_list[7], "%f", &(gps_hdop));
+
+            (void)entry_list[8];
+            (void)entry_list[9];
+            (void)entry_list[10];
+            (void)entry_list[11];
+            (void)entry_list[12];
+            (void)entry_list[13];
         }
-message_line_next:
-        message_line = strsep(&message_buffer_delim_ptr, "\r\n");
-        continue;
     }
 }

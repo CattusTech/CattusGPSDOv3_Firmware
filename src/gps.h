@@ -13,6 +13,11 @@ extern unsigned int gps_time_h;
 extern unsigned int gps_time_m;
 extern float        gps_time_s;
 
+#define UART_LINE_BUFFER_SIZE 256
+
+extern char   uart_line_buffer[UART_LINE_BUFFER_SIZE];
+extern size_t uart_line_ptr;
+
 void gps_init();
 void gps_deinit();
 void gps_update();
