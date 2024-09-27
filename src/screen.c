@@ -225,10 +225,10 @@ void screen_update()
     u8g2_DrawStr(&u8g2_handle, 4, 62, screen_string_buffer);
 
     sprintf(screen_string_buffer, "P:%04.2lf", gps_hdop);
-    u8g2_DrawStr(&u8g2_handle, 32, 62, screen_string_buffer);
+    u8g2_DrawStr(&u8g2_handle, 34, 62, screen_string_buffer);
 
     sprintf(screen_string_buffer, "%02u:%02u:%02u", gps_time_h, gps_time_m, (unsigned int)gps_time_s);
-    u8g2_DrawStr(&u8g2_handle, 77, 62, screen_string_buffer);
+    u8g2_DrawStr(&u8g2_handle, 76, 62, screen_string_buffer);
 
     if (gps_valid)
     {
