@@ -1,3 +1,18 @@
+// Cattus GNSS Disciplined Oscillator
+// Copyright (C) 2024 AlanCui4080
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "gps.h"
 #include "hardware_error.h"
 #include "ocxo.h"
@@ -5,6 +20,7 @@
 #include <FreeRTOS.h>
 #include <stm32g4xx_hal.h>
 #include <task.h>
+
 extern UART_HandleTypeDef gps_handle;
 extern SPI_HandleTypeDef  screen_spi_handle;
 extern DMA_HandleTypeDef  screen_dma_handle;
