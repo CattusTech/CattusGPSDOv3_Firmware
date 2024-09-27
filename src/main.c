@@ -8,10 +8,19 @@
 #include <FreeRTOS.h>
 #include <inttypes.h>
 #include <message_buffer.h>
+#include <semphr.h>
 #include <stdio.h>
 #include <stm32g4xx_hal.h>
 #include <task.h>
-
+void init_dwt()
+{
+    DWT->CYCCNT = 0;
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+}
+long get_dwt()
+{
+    return DWT->CYCCNT;
+}
 static void watchdog_task(void* v)
 {
     (void)v;
@@ -33,13 +42,18 @@ static void watchdog_task(void* v)
         vTaskDelay(xDelay);
     }
 }
+SemaphoreHandle_t screen_vsync_sem;
+
 void gps_task(void* v)
 {
     (void)v;
     gps_init();
+    screen_vsync_sem = xSemaphoreCreateBinary();
     while (1)
     {
-        gps_update(); // will block when no data available
+        int is_pos_update = gps_update(); // will block when no data available
+        if(is_pos_update == 1)
+            xSemaphoreGive(screen_vsync_sem);
     }
 }
 void screen_task(void* v)
@@ -48,8 +62,21 @@ void screen_task(void* v)
     screen_init();
     while (1)
     {
+        xSemaphoreTake(screen_vsync_sem, portMAX_DELAY);
         screen_update();
-        vTaskDelay(100); // nobody cares about fixed freshrate ~10Hz
+    }
+}
+SemaphoreHandle_t ocxo_jsync_sem;
+
+void counter_task(void* v)
+{
+    (void)v;
+    counter_init();
+    ocxo_jsync_sem = xSemaphoreCreateBinary();
+    while (1)
+    {
+        counter_update();
+        xSemaphoreGive(ocxo_jsync_sem);
     }
 }
 void ocxo_task(void* v)
@@ -58,17 +85,8 @@ void ocxo_task(void* v)
     ocxo_init();
     while (1)
     {
-        ocxo_update(); // will block when no data available
-        vTaskDelay(100);
-    }
-}
-void counter_task(void* v)
-{
-    (void)v;
-    counter_init();
-    while (1)
-    {
-        counter_update(); // will block when no data available
+        xSemaphoreTake(ocxo_jsync_sem, portMAX_DELAY);
+        ocxo_update();
     }
 }
 void print_reset_cause()
@@ -120,16 +138,16 @@ int main()
     result = xTaskCreate(watchdog_task, "watchdog_task", 128, NULL, configMAX_PRIORITIES - 1, NULL);
     if (result != pdPASS)
         hal_perror("freertos", "xTaskCreate", result);
-    result = xTaskCreate(gps_task, "gps_task", 512, NULL, configMAX_PRIORITIES - 2, &gps_task_handle);
+    result = xTaskCreate(gps_task, "gps_task", 512, NULL, 1, &gps_task_handle);
     if (result != pdPASS)
         hal_perror("freertos", "xTaskCreate", result);
-    result = xTaskCreate(screen_task, "screen_task", 256, NULL, 2, &screen_task_handle);
+    result = xTaskCreate(screen_task, "screen_task", 256, NULL, 1, &screen_task_handle);
     if (result != pdPASS)
         hal_perror("freertos", "xTaskCreate", result);
-    result = xTaskCreate(ocxo_task, "ocxo_task", 256, NULL, 3, &ocxo_task_handle);
+    result = xTaskCreate(counter_task, "counter_task", 256, NULL, 1, &counter_task_handle);
     if (result != pdPASS)
         hal_perror("freertos", "xTaskCreate", result);
-    result = xTaskCreate(counter_task, "counter_task", 256, NULL, 4, &counter_task_handle);
+    result = xTaskCreate(ocxo_task, "ocxo_task", 256, NULL, 1, &ocxo_task_handle);
     if (result != pdPASS)
         hal_perror("freertos", "xTaskCreate", result);
 

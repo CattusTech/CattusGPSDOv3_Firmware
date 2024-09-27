@@ -72,7 +72,7 @@
 
 #define configSUPPORT_STATIC_ALLOCATION           1
 #define configSUPPORT_DYNAMIC_ALLOCATION          1
-#define configTOTAL_HEAP_SIZE                     7168U
+#define configTOTAL_HEAP_SIZE                     0x3000U
 #define configAPPLICATION_ALLOCATED_HEAP          0
 #define configSTACK_ALLOCATION_FROM_SEPARATE_HEAP 0
 #define configUSE_MINI_LIST_ITEM                  0
@@ -157,15 +157,16 @@ to all Cortex-M ports, and do not rely on any particular library functions. */
 See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY         (configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
 
+#define configRECORD_STACK_HIGH_ADDRESS              1
 /* Normal assert() semantics without relying on the provision of an assert.h
 header file. */
 /* USER CODE BEGIN 1 */
-#define configASSERT(x)                                                        \
-    if ((x) == 0)                                                              \
-    {                                                                          \
-        taskDISABLE_INTERRUPTS();                                              \
-        for (;;)                                                               \
-            ;                                                                  \
+#define configASSERT(x)           \
+    if ((x) == 0)                 \
+    {                             \
+        taskDISABLE_INTERRUPTS(); \
+        for (;;)                  \
+            ;                     \
     }
 /* USER CODE END 1 */
 
@@ -178,5 +179,9 @@ standard names. */
               to prevent overwriting SysTick_Handler defined within STM32Cube HAL */
 
 #define xPortSysTickHandler SysTick_Handler
+// void init_dwt();
+// long get_dwt();
+// #define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS() init_dwt()
+// #define portGET_RUN_TIME_COUNTER_VALUE()         get_dwt()
 
 #endif /* FREERTOS_CONFIG_H */

@@ -8,6 +8,7 @@
 GPIO_InitTypeDef         gpio_gps_rx;
 GPIO_InitTypeDef         gpio_gps_tx;
 UART_HandleTypeDef       gps_handle;
+DMA_HandleTypeDef        gps_dma_handle;
 RCC_PeriphCLKInitTypeDef gps_clk;
 
 double       gps_latitude      = 0.0;
@@ -44,6 +45,25 @@ void gps_init()
     if (result != HAL_OK)
         hal_perror("gps", "HAL_RCCEx_PeriphCLKConfig", result);
 
+    __HAL_RCC_DMA2_CLK_ENABLE();
+
+    gps_dma_handle.Instance                 = DMA2_Channel1;
+    gps_dma_handle.Init.Request             = DMA_REQUEST_USART1_RX;
+    gps_dma_handle.Init.PeriphInc           = DMA_PINC_DISABLE;
+    gps_dma_handle.Init.MemInc              = DMA_MINC_ENABLE;
+    gps_dma_handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+    gps_dma_handle.Init.MemDataAlignment    = DMA_MDATAALIGN_BYTE;
+    gps_dma_handle.Init.Mode                = DMA_NORMAL;
+    gps_dma_handle.Init.Priority            = DMA_PRIORITY_LOW;
+
+    result = HAL_DMA_Init(&gps_dma_handle);
+    if (result != HAL_OK)
+        hal_perror("gps", "HAL_DMA_Init", result);
+    __HAL_LINKDMA(&gps_handle, hdmarx, gps_dma_handle);
+
+    HAL_NVIC_SetPriority(DMA2_Channel1_IRQn, 1, 1);
+    HAL_NVIC_EnableIRQ(DMA2_Channel1_IRQn);
+
     __HAL_RCC_USART1_CLK_ENABLE();
 
     gps_handle.Instance                    = USART1;
@@ -65,12 +85,12 @@ void gps_init()
     result = HAL_UARTEx_SetTxFifoThreshold(&gps_handle, USART_TXFIFO_THRESHOLD_1_8);
     if (result != HAL_OK)
         hal_perror("gps", "HAL_USARTEx_SetTxFifoThreshold", result);
-    result = HAL_UARTEx_SetRxFifoThreshold(&gps_handle, USART_RXFIFO_THRESHOLD_8_8);
+    result = HAL_UARTEx_SetRxFifoThreshold(&gps_handle, USART_TXFIFO_THRESHOLD_1_8);
     if (result != HAL_OK)
         hal_perror("gps", "HAL_USARTEx_SetRxFifoThreshold", result);
-    result = HAL_UARTEx_EnableFifoMode(&gps_handle);
+    result = HAL_UARTEx_DisableFifoMode(&gps_handle);
     if (result != HAL_OK)
-        hal_perror("gps", "HAL_UARTEx_EnableFifoMode", result);
+        hal_perror("gps", "HAL_UARTEx_DisabeFifoMode", result);
 
     HAL_NVIC_SetPriority(USART1_IRQn, 1, 0);
     HAL_NVIC_EnableIRQ(USART1_IRQn);
@@ -99,13 +119,13 @@ char*  gps_getline()
     uart_line_ptr = 0;
     memset(uart_line_buffer, 0, UART_LINE_BUFFER_SIZE);
 
-    HAL_UART_Receive_IT(&gps_handle, (uint8_t *)uart_line_buffer + uart_line_ptr, 1); // emit!
+    HAL_UART_Receive_IT(&gps_handle, (uint8_t*)uart_line_buffer + uart_line_ptr, 1); // emit!
 
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
     return uart_line_buffer;
 }
 
-void gps_update()
+int gps_update()
 {
     char* message_line = gps_getline();
 
@@ -143,7 +163,7 @@ void gps_update()
     char* message_id             = strsep(&message_line_delim_ptr, ",");
     if (strcmp(message_id + 3, "GGA") != 0)
     {
-        return;
+        return 0;
     }
     else
     {
@@ -162,7 +182,7 @@ void gps_update()
         if (entry_list[14][0] != checksum_chr[0] || entry_list[14][1] != checksum_chr[1])
         {
             printf("gps: crtical warning! a checksum error has been detected, skipped.\n");
-            return;
+            return 0;
         }
         else
         {
@@ -209,6 +229,9 @@ void gps_update()
             (void)entry_list[11];
             (void)entry_list[12];
             (void)entry_list[13];
+
+            return 1;
         }
     }
+    return 0;
 }

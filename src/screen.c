@@ -13,6 +13,7 @@ GPIO_InitTypeDef  gpio_screen_dc;
 GPIO_InitTypeDef  gpio_screen_reset;
 TIM_HandleTypeDef screen_timer_handle;
 SPI_HandleTypeDef screen_spi_handle;
+DMA_HandleTypeDef screen_dma_handle;
 
 u8g2_t  u8g2_handle;
 uint8_t u8x8_byte_method(u8x8_t* u8x8, uint8_t msg, uint8_t arg_int, void* arg_ptr)
@@ -21,9 +22,12 @@ uint8_t u8x8_byte_method(u8x8_t* u8x8, uint8_t msg, uint8_t arg_int, void* arg_p
     switch (msg)
     {
         case U8X8_MSG_BYTE_SEND:
+            HAL_SPI_StateTypeDef state = HAL_SPI_GetState(&screen_spi_handle);
+            if (state != HAL_SPI_STATE_READY)
+                hal_perror("screen", "HAL_SPI_GetState", state);
             result = HAL_SPI_Transmit_IT(&screen_spi_handle, (uint8_t*)arg_ptr, arg_int);
             if (result != HAL_OK)
-                hal_perror("screen", "HAL_SPI_Transmit", result);
+                hal_perror("screen", "HAL_SPI_Transmit_DMA", result);
             ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
             break;
         case U8X8_MSG_BYTE_INIT:
@@ -120,6 +124,26 @@ void screen_init()
     gpio_screen_reset.Speed = GPIO_SPEED_FREQ_MEDIUM;
     HAL_GPIO_Init(GPIOB, &gpio_screen_reset);
 
+    __HAL_RCC_DMAMUX1_CLK_ENABLE();
+    __HAL_RCC_DMA1_CLK_ENABLE();
+
+    screen_dma_handle.Instance                 = DMA1_Channel1;
+    screen_dma_handle.Init.Request             = DMA_REQUEST_SPI2_TX;
+    screen_dma_handle.Init.PeriphInc           = DMA_PINC_DISABLE;
+    screen_dma_handle.Init.MemInc              = DMA_MINC_ENABLE;
+    screen_dma_handle.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+    screen_dma_handle.Init.MemDataAlignment    = DMA_MDATAALIGN_BYTE;
+    screen_dma_handle.Init.Mode                = DMA_NORMAL;
+    screen_dma_handle.Init.Priority            = DMA_PRIORITY_LOW;
+
+    HAL_StatusTypeDef result = HAL_DMA_Init(&screen_dma_handle);
+    if (result != HAL_OK)
+        hal_perror("screen", "HAL_DMA_Init", result);
+    __HAL_LINKDMA(&screen_spi_handle, hdmatx, screen_dma_handle);
+
+    HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 2, 1);
+    HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+
     __HAL_RCC_SPI2_CLK_ENABLE();
 
     screen_spi_handle.Instance               = SPI2;
@@ -137,7 +161,7 @@ void screen_init()
     screen_spi_handle.Init.CRCLength         = SPI_CRC_LENGTH_DATASIZE;
     screen_spi_handle.Init.NSSPMode          = SPI_NSS_PULSE_DISABLE;
 
-    HAL_StatusTypeDef result = HAL_SPI_Init(&screen_spi_handle);
+    result = HAL_SPI_Init(&screen_spi_handle);
     if (result != HAL_OK)
         hal_perror("screen", "HAL_SPI_Init", result);
 
@@ -146,6 +170,12 @@ void screen_init()
 
     printf("screen: ready\n");
     u8g2_Setup_sh1106_128x64_noname_f(&u8g2_handle, U8G2_R0, u8x8_byte_method, u8x8_gpio_and_delay_method);
+    uint8_t* buf = (uint8_t*)pvPortMalloc(u8g2_GetBufferSize(&u8g2_handle)); // dynamically allocate a buffer of the
+                                                                             // required size
+    if (buf == NULL)
+        hal_perror("screen", "pvPortMalloc", buf);
+    u8g2_SetBufferPtr(&u8g2_handle, buf);
+
     u8g2_InitDisplay(&u8g2_handle);
     printf("screen: setup for sh1106_128x64_noname_f\n");
     u8g2_SetPowerSave(&u8g2_handle, 0);
@@ -218,7 +248,7 @@ void screen_update()
         u8g2_SetFont(&u8g2_handle, u8g2_font_open_iconic_check_1x_t);
         u8g2_DrawGlyph(&u8g2_handle, 30, 22, 68); // cross mark
     }
-    
+
     if (ocxo_overheat)
     {
         if (ocxo_valid)

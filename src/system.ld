@@ -54,29 +54,30 @@
 ENTRY(Reset_Handler)
 
 /* Highest address of the user mode stack */
+_estack = ORIGIN(RAM) + LENGTH(RAM);	/* end of "RAM" Ram type memory */
 
-_Min_Heap_Size = 0x400;	/* required amount of heap  */
+_Min_Heap_Size = 0x200;	/* required amount of heap  */
 _Min_Stack_Size = 0x400;	/* required amount of stack */
 
 /* Memories definition */
 MEMORY
 {
-  SRAM    (rw)     : ORIGIN = 0x20000000,      LENGTH = 32K
-  FLASH    (rx)     : ORIGIN = 0x08000000,      LENGTH = 128K
+  RAM    (xrw)    : ORIGIN = 0x20000000,   LENGTH = 32K
+  ROM    (rx)    : ORIGIN = 0x08000000,   LENGTH = 128K
 }
 
-/* Define output sections */
+/* Sections */
 SECTIONS
 {
-  /* The startup code goes first into FLASH */
+  /* The startup code into "ROM" Rom type memory */
   .isr_vector :
   {
     . = ALIGN(4);
     KEEP(*(.isr_vector)) /* Startup code */
     . = ALIGN(4);
-  } >FLASH
+  } >ROM
 
-  /* The program code and other data goes into FLASH */
+  /* The program code and other data into "ROM" Rom type memory */
   .text :
   {
     . = ALIGN(4);
@@ -91,49 +92,66 @@ SECTIONS
 
     . = ALIGN(4);
     _etext = .;        /* define a global symbols at end of code */
-  } >FLASH
+  } >ROM
 
-  /* Constant data goes into FLASH */
+  /* Constant data into "ROM" Rom type memory */
   .rodata :
   {
     . = ALIGN(4);
     *(.rodata)         /* .rodata sections (constants, strings, etc.) */
     *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
     . = ALIGN(4);
-  } >FLASH
+  } >ROM
 
-  .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
-  .ARM : {
+  .ARM.extab (READONLY) : /* The READONLY keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
+  {
+    . = ALIGN(4);
+    *(.ARM.extab* .gnu.linkonce.armextab.*)
+    . = ALIGN(4);
+  } >ROM
+  
+  .ARM (READONLY) : /* The READONLY keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
+  {
+    . = ALIGN(4);
     __exidx_start = .;
     *(.ARM.exidx*)
     __exidx_end = .;
-  } >FLASH
+    . = ALIGN(4);
+  } >ROM
 
-  .preinit_array     :
+  .preinit_array (READONLY) : /* The READONLY keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
   {
+    . = ALIGN(4);
     PROVIDE_HIDDEN (__preinit_array_start = .);
     KEEP (*(.preinit_array*))
     PROVIDE_HIDDEN (__preinit_array_end = .);
-  } >FLASH
-  .init_array :
+    . = ALIGN(4);
+  } >ROM
+  
+  .init_array (READONLY) : /* The READONLY keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
   {
+    . = ALIGN(4);
     PROVIDE_HIDDEN (__init_array_start = .);
     KEEP (*(SORT(.init_array.*)))
     KEEP (*(.init_array*))
     PROVIDE_HIDDEN (__init_array_end = .);
-  } >FLASH
-  .fini_array :
+    . = ALIGN(4);
+  } >ROM
+  
+  .fini_array (READONLY) : /* The READONLY keyword is only supported in GCC11 and later, remove it if using GCC10 or earlier. */
   {
+    . = ALIGN(4);
     PROVIDE_HIDDEN (__fini_array_start = .);
     KEEP (*(SORT(.fini_array.*)))
     KEEP (*(.fini_array*))
     PROVIDE_HIDDEN (__fini_array_end = .);
-  } >FLASH
+    . = ALIGN(4);
+  } >ROM
 
-  /* used by the startup to initialize data */
+  /* Used by the startup to initialize data */
   _sidata = LOADADDR(.data);
 
-  /* Initialized data sections goes into RAM, load LMA copy after code */
+  /* Initialized data sections into "RAM" Ram type memory */
   .data : 
   {
     . = ALIGN(4);
@@ -143,14 +161,14 @@ SECTIONS
 
     . = ALIGN(4);
     _edata = .;        /* define a global symbol at data end */
-  } >SRAM AT> FLASH
+    
+  } >RAM AT> ROM
 
-  
-  /* Uninitialized data section */
+  /* Uninitialized data section into "RAM" Ram type memory */
   . = ALIGN(4);
   .bss :
   {
-    /* This is used by the startup in order to initialize the .bss secion */
+    /* This is used by the startup in order to initialize the .bss section */
     _sbss = .;         /* define a global symbol at bss start */
     __bss_start__ = _sbss;
     *(.bss)
@@ -160,9 +178,9 @@ SECTIONS
     . = ALIGN(4);
     _ebss = .;         /* define a global symbol at bss end */
     __bss_end__ = _ebss;
-  } >SRAM
-  
-  /* User_heap_stack section, used to check that there is enough RAM left */
+  } >RAM
+
+  /* User_heap_stack section, used to check that there is enough "RAM" Ram  type memory left */
   ._user_heap_stack :
   {
     . = ALIGN(8);
@@ -171,12 +189,9 @@ SECTIONS
     . = . + _Min_Heap_Size;
     . = . + _Min_Stack_Size;
     . = ALIGN(8);
-    PROVIDE ( _estack = .);
-  } >SRAM
+  } >RAM
 
-  
-
-  /* Remove information from the standard libraries */
+  /* Remove information from the compiler libraries */
   /DISCARD/ :
   {
     libc.a ( * )

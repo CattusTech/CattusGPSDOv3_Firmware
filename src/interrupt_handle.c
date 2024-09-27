@@ -7,6 +7,7 @@
 #include <task.h>
 extern UART_HandleTypeDef gps_handle;
 extern SPI_HandleTypeDef  screen_spi_handle;
+extern DMA_HandleTypeDef  screen_dma_handle;
 extern ADC_HandleTypeDef  ocxo_adc_handle;
 extern TIM_HandleTypeDef  counter_timer_handle;
 extern TaskHandle_t       gps_task_handle;
@@ -30,7 +31,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 {
     (void)huart;
     if (uart_line_ptr >= UART_LINE_BUFFER_SIZE - 1)
-        printf("gps: crtical warning! line length overflow.\n");
+        printf("gps: crtical warning! line length overflow\n");
 
     if (uart_line_buffer[uart_line_ptr] != '\n')
     {
@@ -48,10 +49,21 @@ void SPI2_IRQHandler(void)
 {
     HAL_SPI_IRQHandler(&screen_spi_handle);
 }
+void DMA1_Channel1_IRQHandler(void)
+{
+    HAL_DMA_IRQHandler(&screen_dma_handle);
+}
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef* hspi)
 {
     (void)hspi;
     vTaskNotifyGiveFromISR(screen_task_handle, NULL);
+}
+void HAL_SPI_ErrorCallback(SPI_HandleTypeDef* hspi)
+{
+    (void)hspi;
+    while (1)
+    {
+    }
 }
 void ADC1_2_IRQHandler(void)
 {

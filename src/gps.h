@@ -20,4 +20,4 @@ extern size_t uart_line_ptr;
 
 void gps_init();
 void gps_deinit();
-void gps_update();
+int gps_update();
