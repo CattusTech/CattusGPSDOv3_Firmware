@@ -218,7 +218,7 @@ void screen_update()
     sprintf(screen_string_buffer, "Lon: %13.9lf\xb0%c", gps_longitude, gps_longitude_chr);
     u8g2_DrawStr(&u8g2_handle, 4, 43, screen_string_buffer);
 
-    sprintf(screen_string_buffer, "Freq: %12.9lfMhz", counter_cycle / 10000000);
+    sprintf(screen_string_buffer, "Freq: %12.9lfMhz", counter_cycle / 1000000.0f);
     u8g2_DrawStr(&u8g2_handle, 4, 52, screen_string_buffer);
 
     sprintf(screen_string_buffer, "%-4u", counter_gate);

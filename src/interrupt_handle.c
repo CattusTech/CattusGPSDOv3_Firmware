@@ -73,5 +73,8 @@ void ADC1_2_IRQHandler(void)
 void TIM2_IRQHandler(void)
 {
     HAL_TIM_IRQHandler(&counter_timer_handle);
+}
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef* htim)
+{
     vTaskNotifyGiveFromISR(counter_task_handle, NULL);
 }
